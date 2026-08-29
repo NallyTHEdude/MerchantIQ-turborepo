@@ -27,6 +27,21 @@ out/
 build
 dist
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+venv/
+env/
+.env
+*.so
+
+apps/ml-service/.venv
+*/.venv
+*/.venv/*
+
 
 # Debug
 npm-debug.log*
