@@ -2,6 +2,7 @@
   "name": "merchant-analyzer-turborepo",
   "private": true,
   "scripts": {
+    "ml:setup": "python -m venv apps\\ml-service\\.venv && apps\\ml-service\\.venv\\Scripts\\python.exe -m pip install -r apps\\ml-service\\requirements.txt",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
