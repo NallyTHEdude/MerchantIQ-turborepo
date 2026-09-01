@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "python -m venv .venv && .venv\\Scripts\\python.exe -m pip install -r requirements.txt",
-    "dev": ".venv\\Scripts\\python.exe -m uvicorn main:app --reload --port 8000",
+    "dev": ".venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
     "build": "python -m venv .venv && .venv\\Scripts\\python.exe -m pip install -r requirements.txt",
     "start": ".venv\\Scripts\\python.exe -m uvicorn main:app --port 8000"
   }

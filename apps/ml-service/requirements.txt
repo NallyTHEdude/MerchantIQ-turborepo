@@ -1,5 +1,9 @@
 fastapi
-uvicorn
-scikit-learn==1.6.1
+uvicorn[standard]
+pydantic
 pandas
+numpy
 joblib
+scikit-learn==1.6.1
+xgboost
+shap
