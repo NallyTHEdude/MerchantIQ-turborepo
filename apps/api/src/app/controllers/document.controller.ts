@@ -9,6 +9,7 @@ import { type Request, type Response } from "express";
 import asyncHandler from "express-async-handler";
 import { StatusCodes } from "http-status-codes/build/cjs/status-codes";
 
+// TODO: check for existing pending and create pending verification accordingly
 export const uploadMerchantDocument = asyncHandler(
   async (req: Request<DocumentMerchantIdParam>, res: Response) => {
     const { fileStream, fileOriginalName } = req;
