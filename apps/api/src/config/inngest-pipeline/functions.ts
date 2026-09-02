@@ -238,7 +238,7 @@ export const ragProcessingPipeline = inngestClient.createFunction(
   async ({ event, step }) => {
     const { merchant, verificationId, verificationResult, documentResult } = event.data;
 
-    // RAG logic will go here
+    //TODO: RAG logic will go here
 
     return {
       merchantId: merchant.id,
