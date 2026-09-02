@@ -1,5 +1,9 @@
 import { inngestClient } from "./client";
-import { verificationRequested, documentUploaded } from "./eventSchemas";
+import {
+  verificationRequested,
+  documentUploaded,
+  merchantAnalysisRequested,
+} from "./eventSchemas";
 
 import { extractTextFromPdf } from "@/app/embedding-pipeline-stages/document";
 import { chunkDocument } from "@/app/embedding-pipeline-stages/chunk";
@@ -217,6 +221,40 @@ export const documentIngestionPipeline = inngestClient.createFunction(
     return {
       documentId: document.id,
       chunkCount: chunks.length,
+    };
+  },
+);
+
+export const merchantAnalysisPipeline = inngestClient.createFunction(
+  {
+    id: "merchant-analysis",
+    triggers: [merchantAnalysisRequested],
+  },
+  async ({ event, step }) => {
+    const { merchant, verificationId, isMerchantUpdate, document } = event.data;
+
+    const [verificationResult, documentResult] = await Promise.all([
+      step.invoke("run-verification", {
+        function: verificationPipeline,
+        data: {
+          merchant,
+          verificationId,
+          isMerchantUpdate,
+        },
+      }),
+
+      step.invoke("run-document-ingestion", {
+        function: documentIngestionPipeline,
+        data: document,
+      }),
+    ]);
+
+    console.log("Verification result:", verificationResult);
+    console.log("Document result:", documentResult);
+
+    return {
+      verificationResult,
+      documentResult,
     };
   },
 );

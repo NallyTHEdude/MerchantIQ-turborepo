@@ -21,3 +21,21 @@ export const documentUploaded = eventType("document/uploaded", {
     metadata: z.record(z.string(), z.unknown()).optional(),
   }),
 });
+
+
+export const merchantAnalysisRequested = eventType("merchant-analysis/requested", {
+    schema: z.object({
+      merchant: z.custom<Merchant>(),
+      verificationId: z.string(),
+      isMerchantUpdate: z.boolean(),
+      document: z.object({
+        secureUrl: z.string().url(),
+        publicId: z.string(),
+        source: z.string(),
+        documentType: z.nativeEnum(DocumentType),
+        merchantId: z.string(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+  },
+);
