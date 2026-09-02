@@ -1,7 +1,6 @@
 import { inngestClient } from "./client";
-import { verificationRequested } from "./eventSchemas";
+import { verificationRequested, documentUploaded } from "./eventSchemas";
 
-import { documentUploaded } from "./eventSchemas";
 import { extractTextFromPdf } from "@/app/embedding-pipeline-stages/document";
 import { chunkDocument } from "@/app/embedding-pipeline-stages/chunk";
 import { generateEmbeddings } from "@/app/embedding-pipeline-stages/embedding";
@@ -178,20 +177,20 @@ export const documentIngestionPipeline = inngestClient.createFunction(
 
     // step1: Extract text from document
     const text = await step.run("extract-document-text", async () => {
-      const text = await extractTextFromPdf(secureUrl);
-      if (!text) {
+      const document_text = await extractTextFromPdf(secureUrl);
+      if (!document_text) {
         throw new Error("No text could be extracted from document");
       }
-      return text;
+      return document_text;
     });
 
     // step2: Chunk document
     const chunks = await step.run("chunk-document", async () => {
-      const chunks = await chunkDocument(text);
-      if (chunks.length === 0) {
+      const document_chunks = await chunkDocument(text);
+      if (document_chunks.length === 0) {
         throw new Error("Document produced no chunks");
       }
-      return chunks;
+      return document_chunks;
     });
 
     // step3: Generate embeddings from chunks
