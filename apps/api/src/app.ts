@@ -3,7 +3,7 @@ import express from "express";
 import { serve } from "inngest/express";
 
 import { inngestClient } from "@/config/inngest-pipeline/client";
-import { verificationPipeline, documentIngestionPipeline } from "./config/inngest-pipeline/functions";
+import { verificationPipeline, documentIngestionPipeline, merchantAnalysisPipeline } from "./config/inngest-pipeline/functions";
 
 //import routes
 import healthRoute from "@/app/routes/health.route";
@@ -28,7 +28,11 @@ app.use(
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   serve({
     client: inngestClient,
-    functions: [verificationPipeline, documentIngestionPipeline],
+    functions: [
+      verificationPipeline,
+      documentIngestionPipeline,
+      merchantAnalysisPipeline,
+    ],
   }),
 );
 
