@@ -2,6 +2,8 @@ import { eventType } from "inngest";
 import { z } from "zod";
 import { type Merchant } from "@/data/types/Merchant";
 import { DocumentType } from "@/data/enums/db.enums";
+import { staticSchema } from "inngest";
+import { MerchantRagInput } from "@/data/types/Rag";
 
 export const verificationRequested = eventType("verification/requested", {
   schema: z.object({
@@ -22,7 +24,6 @@ export const documentUploaded = eventType("document/uploaded", {
   }),
 });
 
-
 export const merchantAnalysisRequested = eventType("merchant-analysis/requested", {
     schema: z.object({
       merchant: z.custom<Merchant>(),
@@ -39,3 +40,6 @@ export const merchantAnalysisRequested = eventType("merchant-analysis/requested"
     }),
   },
 );
+
+// since we are invoking it, we dont need eventType 
+export const merchantRagSchema = staticSchema<MerchantRagInput>();
