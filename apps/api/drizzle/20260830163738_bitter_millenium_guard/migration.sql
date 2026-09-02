@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "one_pending_verification_per_merchant" ON "verifications" ("merchant_id") WHERE "verification_status" = 'PENDING';

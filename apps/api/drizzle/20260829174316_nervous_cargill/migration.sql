@@ -1,0 +1,1 @@
+ALTER TABLE "payments" ADD COLUMN "is_international" boolean DEFAULT false NOT NULL;

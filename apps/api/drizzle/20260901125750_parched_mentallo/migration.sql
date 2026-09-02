@@ -1,0 +1,1 @@
+ALTER TABLE "rag_chunks" ALTER COLUMN "embedding" SET DATA TYPE vector(1024) USING "embedding"::vector(1024);

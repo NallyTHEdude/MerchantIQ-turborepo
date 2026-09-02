@@ -1,0 +1,62 @@
+{
+  "name": "merchant-analysis-api",
+  "version": "1.0.0",
+  "description": "a merchant analysis api for verification and validation of the merchant based on various factors",
+  "keywords": [
+    "express",
+    "drizzle",
+    "zod",
+    "postgreSQL",
+    "helmet",
+    "dotenv"
+  ],
+  "license": "ISC",
+  "author": "Nawaz",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@types/node": "^26.3.0",
+    "@types/pg": "^8.23.1",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "drizzle-kit": "^1.0.0-rc.4",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "tsx": "^4.23.12",
+    "typescript": "6.0.2"
+  },
+  "dependencies": {
+    "@langchain/mistralai": "^1.2.0",
+    "@langchain/textsplitters": "^1.0.1",
+    "@types/busboy": "^1.5.4",
+    "@types/express": "^5.0.6",
+    "busboy": "^1.6.0",
+    "cloudinary": "^2.11.0",
+    "dotenv": "^16.0.3",
+    "drizzle-orm": "^1.0.0-rc.4",
+    "express": "^5.2.1",
+    "express-async-handler": "^1.2.0",
+    "express-validator": "^7.3.2",
+    "firecrawl": "^4.37.0",
+    "http-status-codes": "^2.3.0",
+    "inngest": "^4.18.1",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-model-validator": "^3.0.21",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.4.3"
+  }
+}
