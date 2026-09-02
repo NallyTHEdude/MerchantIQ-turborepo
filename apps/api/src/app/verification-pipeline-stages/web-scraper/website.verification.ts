@@ -79,8 +79,8 @@ export const fetchWebsiteData = async (
       schema: websiteDataSchema,
 
       model: "spark-2",
-      effort: "medium",
-      maxCredits: 100,
+      effort: "low",
+      maxCredits: 50,
     });
 
     if (!result.success || !result.data) {
