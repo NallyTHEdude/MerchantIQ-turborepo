@@ -3,8 +3,9 @@ import {
   verificationRequested,
   documentUploaded,
   merchantAnalysisRequested,
+  merchantRagSchema,
 } from "./eventSchemas";
-
+import { invoke } from "inngest";
 import { extractTextFromPdf } from "@/app/embedding-pipeline-stages/document";
 import { chunkDocument } from "@/app/embedding-pipeline-stages/chunk";
 import { generateEmbeddings } from "@/app/embedding-pipeline-stages/embedding";
@@ -177,7 +178,7 @@ export const documentIngestionPipeline = inngestClient.createFunction(
     triggers: [documentUploaded],
   },
   async ({ event, step }) => {
-    const { secureUrl, source, documentType, metadata } = event.data;
+    const { secureUrl, source, documentType, merchantId, metadata } = event.data;
 
     // step1: Extract text from document
     const text = await step.run("extract-document-text", async () => {
@@ -209,6 +210,7 @@ export const documentIngestionPipeline = inngestClient.createFunction(
         {
           source,
           documentType,
+          merchantId,
           metadata,
         },
         {
@@ -221,6 +223,26 @@ export const documentIngestionPipeline = inngestClient.createFunction(
     return {
       documentId: document.id,
       chunkCount: chunks.length,
+    };
+  },
+);
+
+export const ragProcessingPipeline = inngestClient.createFunction(
+  {
+    id: "process-merchant-rag",
+    retries: 2,
+    triggers: [
+      invoke(merchantRagSchema),
+    ],
+  },
+  async ({ event, step }) => {
+    const { merchant, verificationId, verificationResult, documentResult } = event.data;
+
+    // RAG logic will go here
+
+    return {
+      merchantId: merchant.id,
+      verificationId,
     };
   },
 );
@@ -249,12 +271,28 @@ export const merchantAnalysisPipeline = inngestClient.createFunction(
       }),
     ]);
 
-    console.log("Verification result:", verificationResult);
-    console.log("Document result:", documentResult);
+    if (!verificationResult || !documentResult) {
+      throw new Error("Merchant analysis prerequisites are missing");
+    }
+
+    // console.log("Verification result:", verificationResult);
+    // console.log("Document result:", documentResult);
+
+    const ragResult = await step.invoke("run-rag", {
+      function: ragProcessingPipeline,
+      data: {
+        // results
+        merchant, 
+        verificationId,
+        verificationResult,
+        documentResult,
+      },
+    });
 
     return {
       verificationResult,
       documentResult,
+      ragResult
     };
   },
 );
