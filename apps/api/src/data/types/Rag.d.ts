@@ -19,3 +19,10 @@ export type IngestDocumentInput = {
   documentType: DocumentType;
   metadata?: Record<string, unknown>;
 };
+
+export type MerchantRagInput = {
+  merchant: Merchant;
+  verificationId: string;
+  verificationResult: unknown;
+  documentResult: unknown;
+};
