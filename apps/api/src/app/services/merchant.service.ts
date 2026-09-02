@@ -13,6 +13,7 @@ import {
   deleteMerchantById,
 } from "../repositories/merchant.repository";
 import { request as requestVerification } from "@/app/services/verification.service";
+import { inngestClient } from "@/config/inngest-pipeline/client";
 
 export const getAll = async (): Promise<Merchant[]> => {
   const allMerchants: Merchant[] = await getAllMerchants();
@@ -57,6 +58,11 @@ export const create = async (merchantData: CreateMerchantDto): Promise<Merchant>
       "Failed to create merchant",
     );
   }
+
+  await requestVerification({
+    merchant: newMerchant,
+  })
+
   return newMerchant;
 };
 
@@ -75,12 +81,18 @@ export const update = async (id: string, newMerchantData: UpdateMerchantDto): Pr
   const proposedMerchant: Merchant = {...merchant, ...newMerchantData};
 
   // Verify proposed data
-  await requestVerification({
+  const verification = await requestVerification({
     merchant: proposedMerchant,
   });
-  // Do NOT update the database
-  // The pipeline will update the merchant
-  // only if verification succeeds.
+
+  await inngestClient.send({
+    name: "verification/requested",
+    data: {
+      merchant: proposedMerchant,
+      verificationId: verification.id,
+      isMerchantUpdate: true,
+    },
+  });
 
   return proposedMerchant;
 };
