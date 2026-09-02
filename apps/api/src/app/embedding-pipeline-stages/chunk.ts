@@ -16,5 +16,5 @@ const cleanDocumentText = (text: string): string => {
 
 export const chunkDocument = async (text: string): Promise<string[]> => {
   const cleanedText = cleanDocumentText(text);
-  return await splitter.splitText(cleanedText);
+  return splitter.splitText(cleanedText);
 };
