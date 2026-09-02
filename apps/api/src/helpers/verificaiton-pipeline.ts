@@ -5,12 +5,12 @@ import { getByVerificationId } from "@/app/repositories/verification.repository"
 
 import { getHundredLatestPaymentsByMerchantId } from "@/app/repositories/payment.repository";
 
-import { verifyPhoneNumber } from "@/app/verification-pipeline-stages/phone-number/phoneNumber.verification";
-import { gstNumberVerification } from "@/app/verification-pipeline-stages/gst-number/gstNumber.verification";
-import { fetchWebsiteData } from "@/app/verification-pipeline-stages/web-scraper/website.verification";
-import { mlPrediction } from "@/app/verification-pipeline-stages/ml-prediction/ml-model";
-import { combineResults } from "@/app/verification-pipeline-stages/combine-results/combine-results";
-import { updateVerification } from "@/app/verification-pipeline-stages/update-verification/update-verification";
+import { verifyPhoneNumber } from "@/app/pipelines/verification-pipeline-stages/phone-number/phoneNumber.verification";
+import { gstNumberVerification } from "@/app/pipelines/verification-pipeline-stages/gst-number/gstNumber.verification";
+import { fetchWebsiteData } from "@/app/pipelines/verification-pipeline-stages/web-scraper/website.verification";
+import { mlPrediction } from "@/app/pipelines/verification-pipeline-stages/ml-prediction/ml-model";
+import { combineResults } from "@/app/pipelines/verification-pipeline-stages/combine-results/combine-results";
+import { updateVerification } from "@/app/pipelines/verification-pipeline-stages/update-verification/update-verification";
 import { updateMerchant } from "@/app/repositories/merchant.repository";
 
 // Load existing verification and recent payments
