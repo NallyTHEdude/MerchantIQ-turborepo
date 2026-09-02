@@ -6,6 +6,8 @@ export const documentTypeEnum = pgEnum("document_type", Object.values(DocumentTy
 export const ragDocuments = pgTable("rag_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
 
+  merchantId: uuid("merchant_id"),
+
   source: varchar("source", {
     length: 500,
   }).notNull(),

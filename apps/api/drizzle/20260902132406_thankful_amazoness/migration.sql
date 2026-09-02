@@ -1,0 +1,1 @@
+ALTER TABLE "rag_documents" ADD COLUMN "merchant_id" uuid;
