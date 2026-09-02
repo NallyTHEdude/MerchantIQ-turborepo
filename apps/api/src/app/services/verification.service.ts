@@ -12,7 +12,7 @@ import {
   type RequestVerificationDto,
 } from "@/data/types/Verification";
 import { RiskLevel, VerificationStatus } from "@/data/enums/db.enums";
-import { inngestClient } from "@/config";
+// import { inngestClient } from "@/config";
 import { type PostgresError } from "@/data/types/Database";
 
 export const getAll = async (merchantId: string): Promise<Verification[]> => {
@@ -93,15 +93,6 @@ export const request = async (
         `Failed to create verification for merchant ${merchant.id}`,
       );
     }
-
-    await inngestClient.send({
-      name: "verification/requested",
-      data: {
-        merchant,
-        verificationId: verification.id,
-        isMerchantUpdate: "merchant" in requestVerificationDto,
-      },
-    });
 
     return verification;
   } catch (error: unknown) {
