@@ -3,6 +3,7 @@ import type { DocumentType } from "@/data/enums/db.enums";
 export type CreateRagDocument = {
   source: string;
   documentType: DocumentType;
+  merchantId?: string | null;
   metadata?: Record<string, unknown>;
 };
 
