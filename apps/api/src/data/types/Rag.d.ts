@@ -1,4 +1,5 @@
 import type { DocumentType } from "@/data/enums/db.enums";
+import type { Merchant } from "@/data/types/Merchant";
 
 export type CreateRagDocument = {
   source: string;
