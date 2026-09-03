@@ -21,7 +21,6 @@ The API uses:
 
 _End-to-end request flow: API routes → Inngest event triggers → the fan-out/fan-in pipeline described above → persisted verification and investigation records._
 
-
 ### Database Design
 
 ```mermaid
@@ -141,7 +140,7 @@ Swagger includes request and response examples for every API route.
 ## Routes
 
 - All routes use the `/api` prefix.
-- Check routes documentation in swagger ui by running the api and going to  `http://localhost:<PORT>/api-docs`. 
+- Check routes documentation in swagger ui by running the api and going to `http://localhost:<PORT>/api-docs`.
 
 ## How It Works
 

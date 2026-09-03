@@ -1,26 +1,25 @@
-import { param } from "express-validator";
+import { param } from 'express-validator';
 
 export const requestVerificationValidator = [
-    param("merchantId")
+    param('merchantId')
         .trim()
         .notEmpty()
-        .withMessage("Merchant ID is required")
+        .withMessage('Merchant ID is required')
         .isUUID()
-        .withMessage("Invalid merchant ID"),
+        .withMessage('Invalid merchant ID'),
 ];
 
 export const getVerificationByIdValidator = [
-    param("merchantId")
+    param('merchantId')
         .trim()
         .notEmpty()
-        .withMessage("Merchant ID is required")
+        .withMessage('Merchant ID is required')
         .isUUID()
-        .withMessage("Invalid merchant ID"),
-    param("verificationId")
+        .withMessage('Invalid merchant ID'),
+    param('verificationId')
         .trim()
         .notEmpty()
-        .withMessage("Verification ID is required")
+        .withMessage('Verification ID is required')
         .isUUID()
-        .withMessage("Invalid verification ID"),
+        .withMessage('Invalid verification ID'),
 ];
-

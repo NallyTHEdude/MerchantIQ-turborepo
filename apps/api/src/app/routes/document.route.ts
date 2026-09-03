@@ -1,10 +1,10 @@
 import {
-  uploadGovtDocument,
-  uploadMerchantDocument,
-} from "@/app/controllers/document.controller";
-import { verifyAdminPassword } from "@/app/middlewares/adminAuth.middleware";
-import { documentUpload } from "@/app/middlewares/document.middleware";
-import Router from "express";
+    uploadGovtDocument,
+    uploadMerchantDocument,
+} from '@/app/controllers/document.controller';
+import { verifyAdminPassword } from '@/app/middlewares/adminAuth.middleware';
+import { documentUpload } from '@/app/middlewares/document.middleware';
+import Router from 'express';
 
 const router = Router();
 
@@ -63,7 +63,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post("/govt", verifyAdminPassword, documentUpload, uploadGovtDocument);
+router.post('/govt', verifyAdminPassword, documentUpload, uploadGovtDocument);
 
 /**
  * @swagger
@@ -113,6 +113,6 @@ router.post("/govt", verifyAdminPassword, documentUpload, uploadGovtDocument);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post("/:merchantId", documentUpload, uploadMerchantDocument);
+router.post('/:merchantId', documentUpload, uploadMerchantDocument);
 
 export default router;

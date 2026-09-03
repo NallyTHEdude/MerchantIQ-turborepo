@@ -1,79 +1,81 @@
-import { type Request, type Response, Router } from "express";
-import swaggerJsdoc from "swagger-jsdoc";
-import { config } from "@/config/env/index";
-import { componentSchemas } from "./component-schemas.js";
+import { type Request, type Response, Router } from 'express';
+import swaggerJsdoc from 'swagger-jsdoc';
+import { config } from '@/config/env/index';
+import { componentSchemas } from './component-schemas.js';
 // @ts-expect-error swagger-model-validator does not provide TypeScript declarations by default, hence ignore
-import swaggerModelValidator from "swagger-model-validator";
-import swaggerUi from "swagger-ui-express";
+import swaggerModelValidator from 'swagger-model-validator';
+import swaggerUi from 'swagger-ui-express';
 
 const router = Router();
 
 const options: swaggerJsdoc.Options = {
     swaggerDefinition: {
-        openapi: "3.0.0",
+        openapi: '3.0.0',
         info: {
-            title: "Merchant Analyzer API",
-            version: "1.0.0",
-            description: "API documentation for the Merchant Analyzer project.",
+            title: 'Merchant Analyzer API',
+            version: '1.0.0',
+            description: 'API documentation for the Merchant Analyzer project.',
         },
         tags: [
             {
-                name: "HealthCheck Endpoint",
-                description: "Endpoint related to health check of the API."
+                name: 'HealthCheck Endpoint',
+                description: 'Endpoint related to health check of the API.',
             },
             {
-                name: "Merchant Endpoints",
-                description: "Endpoints related to merchant management."
+                name: 'Merchant Endpoints',
+                description: 'Endpoints related to merchant management.',
             },
             {
-                name: "Payment Endpoints",
-                description: "Endpoints related to payment management."
+                name: 'Payment Endpoints',
+                description: 'Endpoints related to payment management.',
             },
             {
-                name: "Verification Endpoints",
-                description: "Endpoints related to verification management."
+                name: 'Verification Endpoints',
+                description: 'Endpoints related to verification management.',
             },
             {
-                name: "Document Endpoints",
-                description: "Endpoints for uploading merchant and government compliance documents."
-            }
+                name: 'Document Endpoints',
+                description:
+                    'Endpoints for uploading merchant and government compliance documents.',
+            },
         ],
         servers: [
             {
                 url: `http://localhost:${config.PORT}`,
-                description: "Local development server"
-            }
+                description: 'Local development server',
+            },
         ],
         components: {
             securitySchemes: {
                 AdminPassword: {
-                    type: "apiKey",
-                    in: "header",
-                    name: "x-admin-password",
-                    description: "Administrative password required for government document uploads."
-                }
+                    type: 'apiKey',
+                    in: 'header',
+                    name: 'x-admin-password',
+                    description:
+                        'Administrative password required for government document uploads.',
+                },
             },
-            schemas: componentSchemas
-        }
+            schemas: componentSchemas,
+        },
     },
     apis: [
-        "./src/app/routes/health.route.ts",
-        "./src/app/routes/merchant.route.ts",
-        "./src/app/routes/payment.route.ts",
-        "./src/app/routes/verification.route.ts",
-        "./src/app/routes/document.route.ts",
+        './src/app/routes/health.route.ts',
+        './src/app/routes/merchant.route.ts',
+        './src/app/routes/payment.route.ts',
+        './src/app/routes/verification.route.ts',
+        './src/app/routes/document.route.ts',
     ],
-}
+};
 
 const swaggerSpec = swaggerJsdoc(options);
 
 const swaggerUiOptions = {
-    customSiteTitle: "Merchant Analyzer API Docs",
+    customSiteTitle: 'Merchant Analyzer API Docs',
     swaggerOptions: {
-        docExpansion: "list",
+        docExpansion: 'list',
         defaultModelsExpandDepth: 0,
         defaultModelExpandDepth: 2,
-        defaultModelRendering: "example",
+        defaultModelRendering: 'example',
         displayRequestDuration: true,
         filter: true,
         persistAuthorization: true,
@@ -154,18 +156,20 @@ const swaggerUiOptions = {
     `,
 };
 
-
 // validate swagger spec against the OpenAPI 3.0 specification
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- swagger-model-validator ships no type declarations
 swaggerModelValidator(swaggerSpec);
 
-
 // Serve swagger endpoints
-router.get("/json", (_req: Request, res: Response) => {
-    res.setHeader("Content-Type", "application/json");
+router.get('/json', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 });
 
-router.use("/", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+router.use(
+    '/',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, swaggerUiOptions),
+);
 
 export default router;

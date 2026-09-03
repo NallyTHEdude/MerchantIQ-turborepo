@@ -1,44 +1,46 @@
-import { eventType, staticSchema } from "inngest";
-import { z } from "zod";
-import type { Merchant } from "@/data/types/Merchant";
-import { DocumentType } from "@/data/enums/db.enums";
-import type { MerchantRagInput } from "@/data/types/Rag";
+import { eventType, staticSchema } from 'inngest';
+import { z } from 'zod';
+import type { Merchant } from '@/data/types/Merchant';
+import { DocumentType } from '@/data/enums/db.enums';
+import type { MerchantRagInput } from '@/data/types/Rag';
 
-export const verificationRequested = eventType("verification/requested", {
-  schema: z.object({
-    merchant: z.custom<Merchant>(),
-    verificationId: z.string(),
-    isMerchantUpdate: z.boolean(),
-  }),
-});
-
-export const documentUploaded = eventType("document/uploaded", {
-  schema: z.object({
-    secureUrl: z.string().url(),
-    publicId: z.string(),
-    source: z.string(),
-    documentType: z.nativeEnum(DocumentType),
-    merchantId: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-  }),
-});
-
-export const merchantAnalysisRequested = eventType("merchant-analysis/requested", {
+export const verificationRequested = eventType('verification/requested', {
     schema: z.object({
-      merchant: z.custom<Merchant>(),
-      verificationId: z.string(),
-      isMerchantUpdate: z.boolean(),
-      document: z.object({
+        merchant: z.custom<Merchant>(),
+        verificationId: z.string(),
+        isMerchantUpdate: z.boolean(),
+    }),
+});
+
+export const documentUploaded = eventType('document/uploaded', {
+    schema: z.object({
         secureUrl: z.string().url(),
         publicId: z.string(),
         source: z.string(),
         documentType: z.nativeEnum(DocumentType),
-        merchantId: z.string(),
+        merchantId: z.string().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
-      }),
     }),
-  },
+});
+
+export const merchantAnalysisRequested = eventType(
+    'merchant-analysis/requested',
+    {
+        schema: z.object({
+            merchant: z.custom<Merchant>(),
+            verificationId: z.string(),
+            isMerchantUpdate: z.boolean(),
+            document: z.object({
+                secureUrl: z.string().url(),
+                publicId: z.string(),
+                source: z.string(),
+                documentType: z.nativeEnum(DocumentType),
+                merchantId: z.string(),
+                metadata: z.record(z.string(), z.unknown()).optional(),
+            }),
+        }),
+    },
 );
 
-// since we are invoking it, we dont need eventType 
+// since we are invoking it, we dont need eventType
 export const merchantRagSchema = staticSchema<MerchantRagInput>();

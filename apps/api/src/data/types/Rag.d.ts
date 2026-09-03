@@ -1,38 +1,38 @@
-import type { DocumentType } from "@/data/enums/db.enums";
-import type { Merchant } from "@/data/types/Merchant";
+import type { DocumentType } from '@/data/enums/db.enums';
+import type { Merchant } from '@/data/types/Merchant';
 
 export type CreateRagDocument = {
-  source: string;
-  documentType: DocumentType;
-  merchantId?: string | null;
-  metadata?: Record<string, unknown>;
+    source: string;
+    documentType: DocumentType;
+    merchantId?: string | null;
+    metadata?: Record<string, unknown>;
 };
 
 export type CreateRagChunks = {
-  documentId: string;
-  chunks: string[];
-  embeddings: number[][];
+    documentId: string;
+    chunks: string[];
+    embeddings: number[][];
 };
 
 export type IngestDocumentInput = {
-  secureUrl: string;
-  source: string;
-  documentType: DocumentType;
-  metadata?: Record<string, unknown>;
+    secureUrl: string;
+    source: string;
+    documentType: DocumentType;
+    metadata?: Record<string, unknown>;
 };
 
 export type MerchantRagInput = {
-  merchant: Merchant;
-  verificationId: string;
-  verificationResult: unknown;
-  documentResult: unknown;
+    merchant: Merchant;
+    verificationId: string;
+    verificationResult: unknown;
+    documentResult: unknown;
 };
 
 type RetrievedChunk = {
-  id: string;
-  documentId: string;
-  content: string;
-  documentType: DocumentType;
-  source: string;
-  similarity: number;
+    id: string;
+    documentId: string;
+    content: string;
+    documentType: DocumentType;
+    source: string;
+    similarity: number;
 };

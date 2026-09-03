@@ -1,4 +1,4 @@
 export enum RagDecision {
-  APPROVE = "APPROVE",
-  REJECT = "REJECT",
+    APPROVE = 'APPROVE',
+    REJECT = 'REJECT',
 }

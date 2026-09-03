@@ -1,20 +1,20 @@
 import {
-  createMerchant,
-  deleteMerchant,
-  getAllMerchants,
-  getMerchantByGstNumber,
-  getMerchantById,
-  updateMerchant,
-} from "@/app/controllers/merchant.controller";
-import { validate } from "@/app/middlewares/validate.middleware";
+    createMerchant,
+    deleteMerchant,
+    getAllMerchants,
+    getMerchantByGstNumber,
+    getMerchantById,
+    updateMerchant,
+} from '@/app/controllers/merchant.controller';
+import { validate } from '@/app/middlewares/validate.middleware';
 import {
-  createMerchantValidator,
-  deleteMerchantValidator,
-  getMerchantByGstNumberValidator,
-  getMerchantByIdValidator,
-  updateMerchantValidator,
-} from "@/app/validators/merchant.validator";
-import Router from "express";
+    createMerchantValidator,
+    deleteMerchantValidator,
+    getMerchantByGstNumberValidator,
+    getMerchantByIdValidator,
+    updateMerchantValidator,
+} from '@/app/validators/merchant.validator';
+import Router from 'express';
 
 const router = Router();
 
@@ -89,7 +89,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/", getAllMerchants);
+router.get('/', getAllMerchants);
 
 /**
  * @swagger
@@ -141,7 +141,11 @@ router.get("/", getAllMerchants);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/gst/:gstNumber",validate(getMerchantByGstNumberValidator),getMerchantByGstNumber,);
+router.get(
+    '/gst/:gstNumber',
+    validate(getMerchantByGstNumberValidator),
+    getMerchantByGstNumber,
+);
 
 /**
  * @swagger
@@ -291,9 +295,9 @@ router.get("/gst/:gstNumber",validate(getMerchantByGstNumberValidator),getMercha
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:id", validate(getMerchantByIdValidator), getMerchantById);
-router.post("/", validate(createMerchantValidator), createMerchant);
-router.patch("/:id", validate(updateMerchantValidator), updateMerchant);
-router.delete("/:id", validate(deleteMerchantValidator), deleteMerchant);
+router.get('/:id', validate(getMerchantByIdValidator), getMerchantById);
+router.post('/', validate(createMerchantValidator), createMerchant);
+router.patch('/:id', validate(updateMerchantValidator), updateMerchant);
+router.delete('/:id', validate(deleteMerchantValidator), deleteMerchant);
 
 export default router;

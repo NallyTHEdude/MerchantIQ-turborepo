@@ -1,35 +1,35 @@
 {
-  "name": "merchant-analyzer-turborepo",
-  "private": true,
-  "scripts": {
-    "ml:setup": "python -m venv apps\\ml-service\\.venv && apps\\ml-service\\.venv\\Scripts\\python.exe -m pip install -r apps\\ml-service\\requirements.txt",
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check-types": "turbo run check-types"
-  },
-  "devDependencies": {
-    "prettier": "^3.9.6",
-    "turbo": "^2.10.12",
-    "typescript": "6.0.2"
-  },
-  "engines": {
-    "node": ">=24"
-  },
-  "devEngines": {
-    "packageManager": {
-      "name": "npm",
-      "version": "11.16.0"
+    "name": "merchant-analyzer-turborepo",
+    "private": true,
+    "scripts": {
+        "ml:setup": "python -m venv apps\\ml-service\\.venv && apps\\ml-service\\.venv\\Scripts\\python.exe -m pip install -r apps\\ml-service\\requirements.txt",
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "check-types": "turbo run check-types"
+    },
+    "devDependencies": {
+        "prettier": "^3.9.6",
+        "turbo": "^2.10.12",
+        "typescript": "6.0.2"
+    },
+    "engines": {
+        "node": ">=24"
+    },
+    "devEngines": {
+        "packageManager": {
+            "name": "npm",
+            "version": "11.16.0"
+        }
+    },
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "dependencies": {
+        "@langchain/core": "^1.2.9",
+        "@langchain/mistralai": "^1.2.0"
     }
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "dependencies": {
-    "@langchain/core": "^1.2.9",
-    "@langchain/mistralai": "^1.2.0"
-  }
 }

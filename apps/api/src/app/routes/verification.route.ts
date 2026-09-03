@@ -1,14 +1,14 @@
-import Router from "express";
+import Router from 'express';
 import {
     requestVerification,
     getVerificationById,
     getAllVerifications,
-} from "@/app/controllers/verification.controller";
-import { validate } from "@/app/middlewares/validate.middleware";
+} from '@/app/controllers/verification.controller';
+import { validate } from '@/app/middlewares/validate.middleware';
 import {
     requestVerificationValidator,
     getVerificationByIdValidator,
-} from "@/app/validators/verification.validator";
+} from '@/app/validators/verification.validator';
 
 const router = Router();
 
@@ -93,7 +93,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:merchantId", getAllVerifications);
+router.get('/:merchantId', getAllVerifications);
 
 /**
  * @swagger
@@ -151,7 +151,15 @@ router.get("/:merchantId", getAllVerifications);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:merchantId/:verificationId", validate(getVerificationByIdValidator), getVerificationById);
-router.post("/:merchantId", validate(requestVerificationValidator), requestVerification);
+router.get(
+    '/:merchantId/:verificationId',
+    validate(getVerificationByIdValidator),
+    getVerificationById,
+);
+router.post(
+    '/:merchantId',
+    validate(requestVerificationValidator),
+    requestVerification,
+);
 
 export default router;

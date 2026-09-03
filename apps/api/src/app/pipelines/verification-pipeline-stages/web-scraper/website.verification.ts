@@ -1,25 +1,24 @@
-import { firecrawl } from "@/config/firecrawl-scraper/client";
+import { firecrawl } from '@/config/firecrawl-scraper/client';
 
 import {
-  type WebsiteData,
-  type WebsiteVerificationResult,
-} from "@/data/types/pipelineTypes";
+    type WebsiteData,
+    type WebsiteVerificationResult,
+} from '@/data/types/pipelineTypes';
 
-import { websiteDataSchema, type WebsiteAgentData } from "./website.validator";
-
+import { websiteDataSchema, type WebsiteAgentData } from './website.validator';
 
 export const fetchWebsiteData = async (
-  websiteUrl: string,
-  businessName: string,
-  category: string,
+    websiteUrl: string,
+    businessName: string,
+    category: string,
 ): Promise<WebsiteVerificationResult> => {
-  try {
-    console.log(`Investigating website: ${websiteUrl}`);
+    try {
+        console.log(`Investigating website: ${websiteUrl}`);
 
-    const result = await firecrawl.agent({
-      urls: [websiteUrl],
+        const result = await firecrawl.agent({
+            urls: [websiteUrl],
 
-      prompt: `
+            prompt: `
         You are verifying a merchant's website.
 
         Merchant information:
@@ -77,52 +76,52 @@ export const fetchWebsiteData = async (
         determine from the website.
       `,
 
-      schema: websiteDataSchema,
+            schema: websiteDataSchema,
 
-      model: "spark-2",
-      effort: "low",
-      maxCredits: 50,
-    });
+            model: 'spark-2',
+            effort: 'low',
+            maxCredits: 50,
+        });
 
-    if (!result.success || !result.data) {
-      console.error("Firecrawl Agent failed:", result);
+        if (!result.success || !result.data) {
+            console.error('Firecrawl Agent failed:', result);
 
-      return {
-        websiteData: null,
-        isWebsiteVerified: false,
-      };
+            return {
+                websiteData: null,
+                isWebsiteVerified: false,
+            };
+        }
+
+        const agentData = result.data as WebsiteAgentData;
+
+        const websiteData: WebsiteData = {
+            url: websiteUrl,
+
+            businessName: agentData.businessName,
+
+            contactInformation: agentData.contactInformation,
+
+            physicalAddress: agentData.physicalAddress,
+
+            productsOrServices: agentData.productsOrServices,
+
+            policies: agentData.policies,
+
+            scrapedAt: new Date().toISOString(),
+        };
+
+        return {
+            websiteData,
+
+            // Agent makes the initial website verification decision
+            isWebsiteVerified: agentData.isWebsiteVerified,
+        };
+    } catch (error) {
+        console.error('! ----- Firecrawl Agent failed ----- !:', error);
+
+        return {
+            websiteData: null,
+            isWebsiteVerified: false,
+        };
     }
-
-    const agentData = result.data as WebsiteAgentData;
-
-    const websiteData: WebsiteData = {
-      url: websiteUrl,
-
-      businessName: agentData.businessName,
-
-      contactInformation: agentData.contactInformation,
-
-      physicalAddress: agentData.physicalAddress,
-
-      productsOrServices: agentData.productsOrServices,
-
-      policies: agentData.policies,
-
-      scrapedAt: new Date().toISOString(),
-    };
-
-    return {
-      websiteData,
-
-      // Agent makes the initial website verification decision
-      isWebsiteVerified: agentData.isWebsiteVerified,
-    };
-  } catch (error) {
-    console.error("! ----- Firecrawl Agent failed ----- !:", error);
-
-    return {
-      websiteData: null,
-      isWebsiteVerified: false,
-    };
-  }
 };

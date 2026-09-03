@@ -1,9 +1,9 @@
-import type { Merchant } from "@/data/types/Merchant";
+import type { Merchant } from '@/data/types/Merchant';
 
 export const buildRagPrompt = (
-  merchant: Merchant,
-  verificationResult: unknown,
-  ragContext: string,
+    merchant: Merchant,
+    verificationResult: unknown,
+    ragContext: string,
 ) => `
 You are a merchant verification and fraud analysis system used to support (not replace) human underwriting decisions.
 

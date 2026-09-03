@@ -1,15 +1,15 @@
-import Router from "express";
+import Router from 'express';
 import {
     getAllPaymentsValidator,
     getPaymentByIdValidator,
-    createPaymentValidator
-} from "@/app/validators/payment.validator";
-import { validate } from "@/app/middlewares/validate.middleware";
+    createPaymentValidator,
+} from '@/app/validators/payment.validator';
+import { validate } from '@/app/middlewares/validate.middleware';
 import {
     getAllPayments,
     getPaymentById,
-    createPayments
-} from "@/app/controllers/payment.controller";
+    createPayments,
+} from '@/app/controllers/payment.controller';
 
 const router = Router();
 
@@ -110,7 +110,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:merchantId", validate(getAllPaymentsValidator), getAllPayments);
+router.get('/:merchantId', validate(getAllPaymentsValidator), getAllPayments);
 
 /**
  * @swagger
@@ -161,7 +161,11 @@ router.get("/:merchantId", validate(getAllPaymentsValidator), getAllPayments);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:merchantId/:paymentId", validate(getPaymentByIdValidator), getPaymentById);
-router.post("/:merchantId", validate(createPaymentValidator), createPayments);
+router.get(
+    '/:merchantId/:paymentId',
+    validate(getPaymentByIdValidator),
+    getPaymentById,
+);
+router.post('/:merchantId', validate(createPaymentValidator), createPayments);
 
 export default router;
