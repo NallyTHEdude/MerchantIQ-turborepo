@@ -1,42 +1,511 @@
-'use client'
+'use client';
 
-import { useRef, useState } from 'react'
-import { Check, FileJson, FileText, Upload, X } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { merchantCategories, type CreateMerchantPayload, type GstRegistrationCertificate, type Merchant, type PaymentRecord } from '@/data/merchants'
+import { useRef, useState } from 'react';
+import { Check, FileJson, FileText, Upload, X } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    merchantCategories,
+    type CreateMerchantPayload,
+    type GstRegistrationCertificate,
+    type Merchant,
+    type PaymentRecord,
+} from '@/data/merchants';
 
-type Props = { onCreated: (merchant: Merchant) => void }
+type Props = { onCreated: (merchant: Merchant) => void };
 
-const stages: Merchant['stage'][] = ['Phone Number Verification', 'GST Verification', 'Website Verification', 'Payment / Transaction Analysis', 'Trust Score + Risk Level', 'LangGraph Reasoning / Action', 'Compliance RAG']
+const stages: Merchant['stage'][] = [
+    'Phone Number Verification',
+    'GST Verification',
+    'Website Verification',
+    'Payment / Transaction Analysis',
+    'Trust Score + Risk Level',
+    'LangGraph Reasoning / Action',
+    'Compliance RAG',
+];
 
 export function CreateMerchantDialog({ onCreated }: Props) {
-  const [open, setOpen] = useState(false)
-  const [step, setStep] = useState<1 | 2>(1)
-  const [name, setName] = useState('')
-  const [website, setWebsite] = useState('')
-  const [category, setCategory] = useState('')
-  const [phone, setPhone] = useState('')
-  const [gstNumber, setGstNumber] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [gstCertificate, setGstCertificate] = useState<GstRegistrationCertificate | null>(null)
-  const [gstError, setGstError] = useState('')
-  const [json, setJson] = useState<Record<string, unknown> | null>(null)
-  const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([])
-  const [error, setError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const gstInputRef = useRef<HTMLInputElement>(null)
+    const [open, setOpen] = useState(false);
+    const [step, setStep] = useState<1 | 2>(1);
+    const [name, setName] = useState('');
+    const [website, setWebsite] = useState('');
+    const [category, setCategory] = useState('');
+    const [phone, setPhone] = useState('');
+    const [gstNumber, setGstNumber] = useState('');
+    const [file, setFile] = useState<File | null>(null);
+    const [gstCertificate, setGstCertificate] =
+        useState<GstRegistrationCertificate | null>(null);
+    const [gstError, setGstError] = useState('');
+    const [json, setJson] = useState<Record<string, unknown> | null>(null);
+    const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
+    const [error, setError] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+    const gstInputRef = useRef<HTMLInputElement>(null);
 
-  const reset = () => { setStep(1); setName(''); setWebsite(''); setCategory(''); setPhone(''); setGstNumber(''); setFile(null); setJson(null); setPaymentRecords([]); setGstCertificate(null); setGstError(''); setError('') }
-  const parseGst = (nextFile: File) => { setGstError(''); if (nextFile.type !== 'application/pdf' && !/\.pdf$/i.test(nextFile.name)) return setGstError('Upload a PDF file.'); setGstCertificate({ name: nextFile.name, type: 'application/pdf', size: nextFile.size, lastModified: nextFile.lastModified }) }
-  const parseFile = (nextFile: File) => { setError(''); if (nextFile.type && nextFile.type !== 'application/json') return setError('Upload a JSON file.'); const reader = new FileReader(); reader.onload = () => { try { const value = JSON.parse(String(reader.result)); const rows = Array.isArray(value) ? value : Array.isArray(value.records) ? value.records : [value]; const normalized = rows.map((row, index) => { if (!row || typeof row !== 'object') throw new Error(); const item = row as Record<string, unknown>; const amount = Number(item.amount ?? item.total ?? item.value); if (!Number.isFinite(amount) || amount <= 0 || typeof (item.currency ?? 'USD') !== 'string' || typeof (item.status ?? 'completed') !== 'string') throw new Error(); return { id: String(item.id ?? `payment-${index + 1}`), amount, currency: String(item.currency ?? 'USD'), status: String(item.status ?? 'completed'), createdAt: String(item.createdAt ?? new Date().toISOString()), customerId: item.customerId ? String(item.customerId) : undefined } }); if (!normalized.length) throw new Error(); setFile(nextFile); setJson(value); setPaymentRecords(normalized) } catch { setError('Upload valid payment records with amount, currency, and status fields.') } }; reader.readAsText(nextFile) }
-  const next = () => { if (!name.trim() || !website.trim() || !category || !phone.trim() || !gstNumber.trim()) return setError('Complete all merchant details before continuing.'); if (!file || !json || !paymentRecords.length || !gstCertificate) return setError('Upload valid payment records before continuing.'); if (!/^https?:\/\//i.test(website)) return setError('Website must start with http:// or https://.'); setError(''); setStep(2) }
-  const create = () => { const payload: CreateMerchantPayload = { name: name.trim(), website: website.trim(), category, phone: phone.trim(), gstNumber: gstNumber.trim(), paymentRecords, gstCertificate: gstCertificate! }; const id = `${payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`; const merchant: Merchant = { id, name: name.trim(), legalName: name.trim(), gstNumber: gstNumber.trim(), status: 'In progress', risk: 'Low', trustScore: 0, stage: 'Phone Number Verification', updatedAt: 'Just now', submittedAt: 'Aug 30, 2026', country: 'United States', category, website: website.replace(/^https?:\/\//i, ''), phone: phone.trim(), email: '', merchantId: `mrc_${Date.now().toString(36)}`, assessment: 'Verification has started and evidence is being collected.', logisticRegression: 'Pending analysis', isolationForest: 'Pending analysis', riskSignals: [], complianceConcerns: [], ragContext: 'No compliance context has been retrieved yet.', recommendedAction: 'Complete Phone Number Verification.', checks: stages.map((stage, index) => ({ stage, state: index === 0 ? 'processing' : 'review', result: index === 0 ? 'Queued' : 'Not started', timestamp: 'Just now', explanation: index === 0 ? 'Verification job is ready to begin.' : 'Waiting for upstream verification results.' })) }; onCreated(merchant); setOpen(false); reset() }
+    const reset = () => {
+        setStep(1);
+        setName('');
+        setWebsite('');
+        setCategory('');
+        setPhone('');
+        setGstNumber('');
+        setFile(null);
+        setJson(null);
+        setPaymentRecords([]);
+        setGstCertificate(null);
+        setGstError('');
+        setError('');
+    };
+    const parseGst = (nextFile: File) => {
+        setGstError('');
+        if (
+            nextFile.type !== 'application/pdf' &&
+            !/\.pdf$/i.test(nextFile.name)
+        )
+            return setGstError('Upload a PDF file.');
+        setGstCertificate({
+            name: nextFile.name,
+            type: 'application/pdf',
+            size: nextFile.size,
+            lastModified: nextFile.lastModified,
+        });
+    };
+    const parseFile = (nextFile: File) => {
+        setError('');
+        if (nextFile.type && nextFile.type !== 'application/json')
+            return setError('Upload a JSON file.');
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const value = JSON.parse(String(reader.result));
+                const rows = Array.isArray(value)
+                    ? value
+                    : Array.isArray(value.records)
+                      ? value.records
+                      : [value];
+                const normalized = rows.map((row, index) => {
+                    if (!row || typeof row !== 'object') throw new Error();
+                    const item = row as Record<string, unknown>;
+                    const amount = Number(
+                        item.amount ?? item.total ?? item.value,
+                    );
+                    if (
+                        !Number.isFinite(amount) ||
+                        amount <= 0 ||
+                        typeof (item.currency ?? 'USD') !== 'string' ||
+                        typeof (item.status ?? 'completed') !== 'string'
+                    )
+                        throw new Error();
+                    return {
+                        id: String(item.id ?? `payment-${index + 1}`),
+                        amount,
+                        currency: String(item.currency ?? 'USD'),
+                        status: String(item.status ?? 'completed'),
+                        createdAt: String(
+                            item.createdAt ?? new Date().toISOString(),
+                        ),
+                        customerId: item.customerId
+                            ? String(item.customerId)
+                            : undefined,
+                    };
+                });
+                if (!normalized.length) throw new Error();
+                setFile(nextFile);
+                setJson(value);
+                setPaymentRecords(normalized);
+            } catch {
+                setError(
+                    'Upload valid payment records with amount, currency, and status fields.',
+                );
+            }
+        };
+        reader.readAsText(nextFile);
+    };
+    const next = () => {
+        if (
+            !name.trim() ||
+            !website.trim() ||
+            !category ||
+            !phone.trim() ||
+            !gstNumber.trim()
+        )
+            return setError('Complete all merchant details before continuing.');
+        if (!file || !json || !paymentRecords.length || !gstCertificate)
+            return setError('Upload valid payment records before continuing.');
+        if (!/^https?:\/\//i.test(website))
+            return setError('Website must start with http:// or https://.');
+        setError('');
+        setStep(2);
+    };
+    const create = () => {
+        const payload: CreateMerchantPayload = {
+            name: name.trim(),
+            website: website.trim(),
+            category,
+            phone: phone.trim(),
+            gstNumber: gstNumber.trim(),
+            paymentRecords,
+            gstCertificate: gstCertificate!,
+        };
+        const id = `${payload.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '')}-${Date.now()}`;
+        const merchant: Merchant = {
+            id,
+            name: name.trim(),
+            legalName: name.trim(),
+            gstNumber: gstNumber.trim(),
+            status: 'In progress',
+            risk: 'Low',
+            trustScore: 0,
+            stage: 'Phone Number Verification',
+            updatedAt: 'Just now',
+            submittedAt: 'Aug 30, 2026',
+            country: 'United States',
+            category,
+            website: website.replace(/^https?:\/\//i, ''),
+            phone: phone.trim(),
+            email: '',
+            merchantId: `mrc_${Date.now().toString(36)}`,
+            assessment:
+                'Verification has started and evidence is being collected.',
+            logisticRegression: 'Pending analysis',
+            isolationForest: 'Pending analysis',
+            riskSignals: [],
+            complianceConcerns: [],
+            ragContext: 'No compliance context has been retrieved yet.',
+            recommendedAction: 'Complete Phone Number Verification.',
+            checks: stages.map((stage, index) => ({
+                stage,
+                state: index === 0 ? 'processing' : 'review',
+                result: index === 0 ? 'Queued' : 'Not started',
+                timestamp: 'Just now',
+                explanation:
+                    index === 0
+                        ? 'Verification job is ready to begin.'
+                        : 'Waiting for upstream verification results.',
+            })),
+        };
+        onCreated(merchant);
+        setOpen(false);
+        reset();
+    };
 
-  return <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) reset() }}><DialogTrigger render={<Button size="sm" className="h-8" />}>Create merchant</DialogTrigger><DialogContent className="border-border bg-card sm:max-w-[560px]"><DialogHeader><DialogTitle>Create merchant</DialogTitle><DialogDescription>Start a verification run with merchant details and payment evidence.</DialogDescription></DialogHeader>{step === 1 ? <div className="flex flex-col gap-4"><div className="grid gap-3 sm:grid-cols-2"><label className="flex flex-col gap-1.5 text-xs text-muted-foreground">Merchant name<Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Acme Inc." /></label><label className="flex flex-col gap-1.5 text-xs text-muted-foreground">Website<Input value={website} onChange={(event) => setWebsite(event.target.value)} placeholder="https://acme.com" /></label><label className="flex flex-col gap-1.5 text-xs text-muted-foreground">Category<Select value={category} onValueChange={setCategory}><SelectTrigger aria-label="Merchant category"><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{merchantCategories.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></label><label className="flex flex-col gap-1.5 text-xs text-muted-foreground">Phone Number<Input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+1 555 0100" /></label><label className="flex flex-col gap-1.5 text-xs text-muted-foreground sm:col-span-2">GST Number<Input value={gstNumber} onChange={(event) => setGstNumber(event.target.value)} placeholder="22AAAAA0000A1Z5" /></label></div><Separator /><div className="flex flex-col gap-2"><p className="text-xs font-medium text-foreground">Payment records</p><input ref={inputRef} type="file" accept="application/json,.json" className="sr-only" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) parseFile(selected) }} /><button type="button" onClick={() => inputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const dropped = event.dataTransfer.files[0]; if (dropped) parseFile(dropped) }} className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background/40 px-4 text-center transition-colors hover:border-primary/70 hover:bg-secondary/40"><Upload className="size-4 text-muted-foreground" aria-hidden="true" /><span className="text-xs text-foreground">Drop JSON here or click to browse</span><span className="text-[11px] text-muted-foreground">Payment records are required for analysis.</span></button>{file && <div className="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2"><div className="flex min-w-0 items-center gap-2"><FileJson className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="truncate text-xs text-foreground">{file.name}</span><Badge variant="outline">{paymentRecords.length} {paymentRecords.length === 1 ? 'record' : 'records'}</Badge></div><button type="button" onClick={() => { setFile(null); setJson(null) }} aria-label="Remove payment records"><X className="size-4 text-muted-foreground" /></button></div>}{json && <pre className="max-h-24 overflow-auto rounded-md bg-background p-2 font-mono text-[10px] text-muted-foreground">{JSON.stringify(json, null, 2)}</pre>}</div><div className="flex flex-col gap-2"><p className="text-xs font-medium text-foreground">GST Registration Certificate</p><input ref={gstInputRef} type="file" accept="application/pdf,.pdf" className="sr-only" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) parseGst(selected) }} /><button type="button" onClick={() => gstInputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const dropped = event.dataTransfer.files[0]; if (dropped) parseGst(dropped) }} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background/40 px-4 text-center transition-colors hover:border-primary/70 hover:bg-secondary/40"><FileText className="size-4 text-muted-foreground" aria-hidden="true" /><span className="text-xs text-foreground">{gstCertificate ? gstCertificate.name : 'Drop PDF here or click to browse'}</span><span className="text-[11px] text-muted-foreground">{gstCertificate ? 'PDF uploaded · Replace' : 'GST certificate is required.'}</span></button>{gstCertificate && <button type="button" onClick={() => setGstCertificate(null)} className="self-start text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">Remove certificate</button>}{gstError && <p className="text-xs text-destructive" role="alert">{gstError}</p>}</div>{error && <Alert variant="destructive"><AlertTitle>Check the form</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}<DialogFooter><Button onClick={next}>Continue</Button></DialogFooter></div> : <div className="flex flex-col gap-4"><div className="rounded-md border border-border bg-background/50 p-3"><p className="text-xs font-medium text-foreground">Review submission</p><div className="mt-3 grid gap-2 text-xs sm:grid-cols-2"><p><span className="text-muted-foreground">Merchant</span><br />{name}</p><p><span className="text-muted-foreground">Website</span><br />{website}</p><p><span className="text-muted-foreground">Contact</span><br />{email}</p><p><span className="text-muted-foreground">Records</span><br />{paymentRecords.length} parsed from {file?.name ?? 'Not uploaded'}</p></div></div><Alert><Check className="size-4" aria-hidden="true" /><AlertTitle>Ready to create</AlertTitle><AlertDescription>The verification pipeline will begin at Phone Number Verification.</AlertDescription></Alert>{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}<DialogFooter><Button variant="outline" onClick={() => setStep(1)}>Back</Button><Button onClick={create}>Create merchant</Button></DialogFooter></div>}{step === 2 && <div className="rounded-md border border-border bg-background/40 p-3 text-xs"><p><span className="text-muted-foreground">GST Number</span><br />{gstNumber.trim()}</p></div>}</DialogContent></Dialog>
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={(value) => {
+                setOpen(value);
+                if (!value) reset();
+            }}
+        >
+            <DialogTrigger render={<Button size="sm" className="h-8" />}>
+                Create merchant
+            </DialogTrigger>
+            <DialogContent className="border-border bg-card sm:max-w-[560px]">
+                <DialogHeader>
+                    <DialogTitle>Create merchant</DialogTitle>
+                    <DialogDescription>
+                        Start a verification run with merchant details and
+                        payment evidence.
+                    </DialogDescription>
+                </DialogHeader>
+                {step === 1 ? (
+                    <div className="flex flex-col gap-4">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                                Merchant name
+                                <Input
+                                    value={name}
+                                    onChange={(event) =>
+                                        setName(event.target.value)
+                                    }
+                                    placeholder="Acme Inc."
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                                Website
+                                <Input
+                                    value={website}
+                                    onChange={(event) =>
+                                        setWebsite(event.target.value)
+                                    }
+                                    placeholder="https://acme.com"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                                Category
+                                <Select
+                                    value={category}
+                                    onValueChange={setCategory}
+                                >
+                                    <SelectTrigger aria-label="Merchant category">
+                                        <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {merchantCategories.map((item) => (
+                                            <SelectItem key={item} value={item}>
+                                                {item}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                                Phone Number
+                                <Input
+                                    value={phone}
+                                    onChange={(event) =>
+                                        setPhone(event.target.value)
+                                    }
+                                    placeholder="+1 555 0100"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-xs text-muted-foreground sm:col-span-2">
+                                GST Number
+                                <Input
+                                    value={gstNumber}
+                                    onChange={(event) =>
+                                        setGstNumber(event.target.value)
+                                    }
+                                    placeholder="22AAAAA0000A1Z5"
+                                />
+                            </label>
+                        </div>
+                        <Separator />
+                        <div className="flex flex-col gap-2">
+                            <p className="text-xs font-medium text-foreground">
+                                Payment records
+                            </p>
+                            <input
+                                ref={inputRef}
+                                type="file"
+                                accept="application/json,.json"
+                                className="sr-only"
+                                onChange={(event) => {
+                                    const selected = event.target.files?.[0];
+                                    if (selected) parseFile(selected);
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => inputRef.current?.click()}
+                                onDragOver={(event) => event.preventDefault()}
+                                onDrop={(event) => {
+                                    event.preventDefault();
+                                    const dropped = event.dataTransfer.files[0];
+                                    if (dropped) parseFile(dropped);
+                                }}
+                                className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background/40 px-4 text-center transition-colors hover:border-primary/70 hover:bg-secondary/40"
+                            >
+                                <Upload
+                                    className="size-4 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <span className="text-xs text-foreground">
+                                    Drop JSON here or click to browse
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Payment records are required for analysis.
+                                </span>
+                            </button>
+                            {file && (
+                                <div className="flex items-center justify-between rounded-md border border-border bg-background/50 px-3 py-2">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <FileJson
+                                            className="size-4 shrink-0 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="truncate text-xs text-foreground">
+                                            {file.name}
+                                        </span>
+                                        <Badge variant="outline">
+                                            {paymentRecords.length}{' '}
+                                            {paymentRecords.length === 1
+                                                ? 'record'
+                                                : 'records'}
+                                        </Badge>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFile(null);
+                                            setJson(null);
+                                        }}
+                                        aria-label="Remove payment records"
+                                    >
+                                        <X className="size-4 text-muted-foreground" />
+                                    </button>
+                                </div>
+                            )}
+                            {json && (
+                                <pre className="max-h-24 overflow-auto rounded-md bg-background p-2 font-mono text-[10px] text-muted-foreground">
+                                    {JSON.stringify(json, null, 2)}
+                                </pre>
+                            )}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <p className="text-xs font-medium text-foreground">
+                                GST Registration Certificate
+                            </p>
+                            <input
+                                ref={gstInputRef}
+                                type="file"
+                                accept="application/pdf,.pdf"
+                                className="sr-only"
+                                onChange={(event) => {
+                                    const selected = event.target.files?.[0];
+                                    if (selected) parseGst(selected);
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => gstInputRef.current?.click()}
+                                onDragOver={(event) => event.preventDefault()}
+                                onDrop={(event) => {
+                                    event.preventDefault();
+                                    const dropped = event.dataTransfer.files[0];
+                                    if (dropped) parseGst(dropped);
+                                }}
+                                className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-background/40 px-4 text-center transition-colors hover:border-primary/70 hover:bg-secondary/40"
+                            >
+                                <FileText
+                                    className="size-4 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <span className="text-xs text-foreground">
+                                    {gstCertificate
+                                        ? gstCertificate.name
+                                        : 'Drop PDF here or click to browse'}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                    {gstCertificate
+                                        ? 'PDF uploaded · Replace'
+                                        : 'GST certificate is required.'}
+                                </span>
+                            </button>
+                            {gstCertificate && (
+                                <button
+                                    type="button"
+                                    onClick={() => setGstCertificate(null)}
+                                    className="self-start text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                >
+                                    Remove certificate
+                                </button>
+                            )}
+                            {gstError && (
+                                <p
+                                    className="text-xs text-destructive"
+                                    role="alert"
+                                >
+                                    {gstError}
+                                </p>
+                            )}
+                        </div>
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertTitle>Check the form</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button onClick={next}>Continue</Button>
+                        </DialogFooter>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        <div className="rounded-md border border-border bg-background/50 p-3">
+                            <p className="text-xs font-medium text-foreground">
+                                Review submission
+                            </p>
+                            <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                                <p>
+                                    <span className="text-muted-foreground">
+                                        Merchant
+                                    </span>
+                                    <br />
+                                    {name}
+                                </p>
+                                <p>
+                                    <span className="text-muted-foreground">
+                                        Website
+                                    </span>
+                                    <br />
+                                    {website}
+                                </p>
+                                <p>
+                                    <span className="text-muted-foreground">
+                                        Contact
+                                    </span>
+                                    <br />
+                                    {email}
+                                </p>
+                                <p>
+                                    <span className="text-muted-foreground">
+                                        Records
+                                    </span>
+                                    <br />
+                                    {paymentRecords.length} parsed from{' '}
+                                    {file?.name ?? 'Not uploaded'}
+                                </p>
+                            </div>
+                        </div>
+                        <Alert>
+                            <Check className="size-4" aria-hidden="true" />
+                            <AlertTitle>Ready to create</AlertTitle>
+                            <AlertDescription>
+                                The verification pipeline will begin at Phone
+                                Number Verification.
+                            </AlertDescription>
+                        </Alert>
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setStep(1)}
+                            >
+                                Back
+                            </Button>
+                            <Button onClick={create}>Create merchant</Button>
+                        </DialogFooter>
+                    </div>
+                )}
+                {step === 2 && (
+                    <div className="rounded-md border border-border bg-background/40 p-3 text-xs">
+                        <p>
+                            <span className="text-muted-foreground">
+                                GST Number
+                            </span>
+                            <br />
+                            {gstNumber.trim()}
+                        </p>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
 }

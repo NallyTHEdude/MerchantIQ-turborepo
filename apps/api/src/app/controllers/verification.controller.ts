@@ -8,50 +8,51 @@ import type {
     VerificationMerchantIdParam,
     VerificationIdParam,
 } from '@/data/types/Verification';
+import asyncHandler from 'express-async-handler';
 
-export const getAllVerifications = async (
-    req: Request<VerificationMerchantIdParam>,
-    res: Response,
-) => {
-    const { merchantId } = req.params;
-    const verifications: Verification[] = await getAll(merchantId);
-    new ApiResponse(
-        StatusCodes.OK,
-        verifications,
-        'Verifications fetched successfully',
-    ).send(res);
-};
+export const getAllVerifications = asyncHandler(
+    async (req: Request<VerificationMerchantIdParam>, res: Response) => {
+        const { merchantId } = req.params;
+        const verifications: Verification[] = await getAll(merchantId);
+        new ApiResponse(
+            StatusCodes.OK,
+            verifications,
+            'Verifications fetched successfully',
+        ).send(res);
+    },
+);
 
-export const getVerificationById = async (
-    req: Request<VerificationMerchantIdParam & VerificationIdParam>,
-    res: Response,
-) => {
-    const { merchantId, verificationId } = req.params;
-    const verification: Verification = await getById(
-        merchantId,
-        verificationId,
-    );
-    new ApiResponse(
-        StatusCodes.OK,
-        verification,
-        'Verification fetched successfully',
-    ).send(res);
-};
+export const getVerificationById = asyncHandler(
+    async (
+        req: Request<VerificationMerchantIdParam & VerificationIdParam>,
+        res: Response,
+    ) => {
+        const { merchantId, verificationId } = req.params;
+        const verification: Verification = await getById(
+            merchantId,
+            verificationId,
+        );
+        new ApiResponse(
+            StatusCodes.OK,
+            verification,
+            'Verification fetched successfully',
+        ).send(res);
+    },
+);
 
-export const requestVerification = async (
-    req: Request<VerificationMerchantIdParam>,
-    res: Response,
-) => {
-    const { merchantId } = req.params;
-    const requestVerificationDto: RequestVerificationDto = {
-        merchantId,
-    };
+export const requestVerification = asyncHandler(
+    async (req: Request<VerificationMerchantIdParam>, res: Response) => {
+        const { merchantId } = req.params;
+        const requestVerificationDto: RequestVerificationDto = {
+            merchantId,
+        };
 
-    const verification = await request(requestVerificationDto);
+        const verification = await request(requestVerificationDto);
 
-    new ApiResponse(
-        StatusCodes.ACCEPTED,
-        verification,
-        'Verification requested successfully',
-    ).send(res);
-};
+        new ApiResponse(
+            StatusCodes.ACCEPTED,
+            verification,
+            'Verification requested successfully',
+        ).send(res);
+    },
+);
