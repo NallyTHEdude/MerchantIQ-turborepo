@@ -23,18 +23,18 @@ import documentRoute from "@/app/routes/document.route";
 const app = express();
 
 app.use(helmet());
-app.use((req, res, next) => {
-  if (req.is("multipart/form-data")) {
-    return next();
-  }
-  express.json()(req, res, next);
-});
 app.use(
   cors({
     origin: config.FRONTEND_URL,
     credentials: true,
   }),
 );
+app.use((req, res, next) => {
+  if (req.is("multipart/form-data")) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
 // suggested in docs
 app.use(
