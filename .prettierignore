@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Drizzle generated migrations
+drizzle/
+
+# Turborepo caches
+.turbo/
+
+# Build output
+dist/
+build/
+.next/
+out/
+.build/
+
+# Test / coverage output
+coverage/
+
+# Python environments / caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated/minified assets
+*.min.js
+*.min.css
+
+# Documentation diagrams
+docs/*.svg
+
+# Package manager lockfile
+package-lock.json
