@@ -2,7 +2,7 @@ import { eventType, staticSchema } from "inngest";
 import { z } from "zod";
 import type { Merchant } from "@/data/types/Merchant";
 import { DocumentType } from "@/data/enums/db.enums";
-import { MerchantRagInput } from "@/data/types/Rag";
+import type { MerchantRagInput } from "@/data/types/Rag";
 
 export const verificationRequested = eventType("verification/requested", {
   schema: z.object({
