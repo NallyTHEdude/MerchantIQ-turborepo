@@ -50,8 +50,8 @@ const router = Router();
  *   post:
  *     tags:
  *       - Verification Endpoints
- *     summary: Create a verification for a merchant
- *     description: Creates a verification record for the merchant using the path merchantId. No request body or authentication is required.
+ *     summary: Request verification for a merchant
+ *     description: Creates a pending verification record for the merchant and starts the verification workflow. No request body or authentication is required.
  *     parameters:
  *       - in: path
  *         name: merchantId
@@ -61,8 +61,8 @@ const router = Router();
  *           format: uuid
  *         description: Merchant UUID.
  *     responses:
- *       201:
- *         description: Verification created successfully
+ *       202:
+ *         description: Verification request accepted and processing started
  *         content:
  *           application/json:
  *             schema:
@@ -71,9 +71,9 @@ const router = Router();
  *                 - type: object
  *                   properties:
  *                     statusCode:
- *                       example: 201
+ *                       example: 202
  *                     message:
- *                       example: Verification created successfully
+ *                       example: Verification requested successfully
  *       400:
  *         description: Validation failed
  *         content:

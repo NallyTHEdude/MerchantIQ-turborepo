@@ -26,6 +26,7 @@ const paymentExample = {
   amount: "1499.00",
   status: "SUCCESS",
   paymentMethod: "UPI",
+  isInternational: false,
   createdAt: "2026-08-29T10:40:00.000Z",
 };
 
@@ -184,7 +185,14 @@ export const merchantSchema = {
       nullable: true,
     },
   },
-  required: ["id", "businessName", "category", "gstNumber", "websiteUrl", "phoneNumber"],
+  required: [
+    "id",
+    "businessName",
+    "category",
+    "gstNumber",
+    "websiteUrl",
+    "phoneNumber",
+  ],
   example: merchantExample,
 };
 
@@ -214,7 +222,13 @@ export const createMerchantRequestSchema = {
       example: "9876543210",
     },
   },
-  required: ["businessName", "category", "gstNumber", "websiteUrl", "phoneNumber"],
+  required: [
+    "businessName",
+    "category",
+    "gstNumber",
+    "websiteUrl",
+    "phoneNumber",
+  ],
   example: {
     businessName: "Example Retail Pvt Ltd",
     category: "RETAIL",
@@ -453,12 +467,25 @@ export const paymentSchema = {
     paymentMethod: {
       $ref: "#/components/schemas/PaymentMethod",
     },
+    isInternational: {
+      type: "boolean",
+      description: "Whether the payment is an international transaction.",
+      example: false,
+    },
     createdAt: {
       type: "string",
       format: "date-time",
     },
   },
-  required: ["id", "merchantId", "amount", "status", "paymentMethod", "createdAt"],
+  required: [
+    "id",
+    "merchantId",
+    "amount",
+    "status",
+    "paymentMethod",
+    "isInternational",
+    "createdAt",
+  ],
   example: paymentExample,
 };
 
@@ -479,16 +506,90 @@ export const createPaymentRequestSchema = {
       paymentMethod: {
         $ref: "#/components/schemas/PaymentMethod",
       },
+      isInternational: {
+        type: "boolean",
+        description: "Whether the payment is an international transaction.",
+        example: false,
+      },
     },
-    required: ["amount", "status", "paymentMethod"],
+    required: ["amount", "status", "paymentMethod", "isInternational"],
   },
   example: [
     {
       amount: "1499.00",
       status: "SUCCESS",
       paymentMethod: "UPI",
+      isInternational: false,
     },
   ],
+};
+
+export const documentUploadRequestSchema = {
+  type: "object",
+  properties: {
+    file: {
+      type: "string",
+      format: "binary",
+      description: "PDF document. Maximum size: 10 MB.",
+    },
+  },
+  required: ["file"],
+};
+
+export const documentUploadResultSchema = {
+  type: "object",
+  properties: {
+    publicId: {
+      type: "string",
+      description: "Cloudinary public identifier for the uploaded document.",
+    },
+    secureUrl: {
+      type: "string",
+      format: "uri",
+      description: "HTTPS URL for the uploaded document.",
+    },
+    format: {
+      type: "string",
+      nullable: true,
+      example: "pdf",
+    },
+    bytes: {
+      type: "integer",
+      minimum: 1,
+      description: "Uploaded file size in bytes.",
+      example: 245760,
+    },
+  },
+  required: ["publicId", "secureUrl", "bytes"],
+  example: {
+    publicId: "government-documents/compliance-certificate",
+    secureUrl:
+      "https://res.cloudinary.com/example/raw/upload/v1/compliance-certificate.pdf",
+    format: "pdf",
+    bytes: 245760,
+  },
+};
+
+export const documentUploadResponseSchema = {
+  type: "object",
+  properties: {
+    statusCode: {
+      type: "integer",
+      example: 200,
+    },
+    data: {
+      $ref: "#/components/schemas/DocumentUploadResult",
+    },
+    message: {
+      type: "string",
+      example: "Document uploaded successfully",
+    },
+    success: {
+      type: "boolean",
+      example: true,
+    },
+  },
+  required: ["statusCode", "data", "message", "success"],
 };
 
 export const paymentResponseSchema = {
@@ -567,4 +668,7 @@ export const componentSchemas = {
   CreatePaymentRequest: createPaymentRequestSchema,
   PaymentResponse: paymentResponseSchema,
   PaymentListResponse: paymentListResponseSchema,
+  DocumentUploadRequest: documentUploadRequestSchema,
+  DocumentUploadResult: documentUploadResultSchema,
+  DocumentUploadResponse: documentUploadResponseSchema,
 };

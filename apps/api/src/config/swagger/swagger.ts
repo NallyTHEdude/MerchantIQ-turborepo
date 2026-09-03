@@ -32,6 +32,10 @@ const options: swaggerJsdoc.Options = {
             {
                 name: "Verification Endpoints",
                 description: "Endpoints related to verification management."
+            },
+            {
+                name: "Document Endpoints",
+                description: "Endpoints for uploading merchant and government compliance documents."
             }
         ],
         servers: [
@@ -41,7 +45,14 @@ const options: swaggerJsdoc.Options = {
             }
         ],
         components: {
-            securitySchemes: {},
+            securitySchemes: {
+                AdminPassword: {
+                    type: "apiKey",
+                    in: "header",
+                    name: "x-admin-password",
+                    description: "Administrative password required for government document uploads."
+                }
+            },
             schemas: componentSchemas
         }
     },
@@ -50,6 +61,7 @@ const options: swaggerJsdoc.Options = {
         "./src/app/routes/merchant.route.ts",
         "./src/app/routes/payment.route.ts",
         "./src/app/routes/verification.route.ts",
+        "./src/app/routes/document.route.ts",
     ],
 }
 
