@@ -1,16 +1,22 @@
-import { inngestClient } from "./client";
+import { chunkDocument } from "@/app/pipelines/embedding-pipeline-stages/chunk";
+import { extractTextFromPdf } from "@/app/pipelines/embedding-pipeline-stages/document";
 import {
-  verificationRequested,
-  documentUploaded,
-  merchantAnalysisRequested,
-  merchantRagSchema,
-} from "./eventSchemas";
+  generateEmbeddings,
+  generateOneEmbedding,
+} from "@/app/pipelines/embedding-pipeline-stages/embedding";
+import { structuredRagModel } from "@/app/pipelines/rag-analysis/chain";
+import { buildRagContext } from "@/app/pipelines/rag-analysis/context";
+import { buildRagPrompt } from "@/app/pipelines/rag-analysis/prompt";
+import type { RagDecisionResult } from "@/app/pipelines/rag-analysis/schema";
+import { createInvestigation } from "@/app/repositories/investigation.repository";
+import {
+  createRagDocumentWithChunks,
+  retrieveRelevantChunks,
+} from "@/app/repositories/rag.repository";
+import { markVerificationAsServerError } from "@/app/repositories/verification.repository";
+import { VerificationStatus } from "@/data/enums/db.enums";
+import { type Merchant } from "@/data/types/Merchant";
 import { invoke } from "inngest";
-import { extractTextFromPdf } from "@/app/embedding-pipeline-stages/document";
-import { chunkDocument } from "@/app/embedding-pipeline-stages/chunk";
-import { generateEmbeddings } from "@/app/embedding-pipeline-stages/embedding";
-import { createRagDocumentWithChunks } from "@/app/repositories/rag.repository";
-
 import {
   applyMerchantUpdate,
   buildPipelineResults,
@@ -22,10 +28,21 @@ import {
   runPhoneVerification,
   runWebsiteVerification,
 } from "../../helpers/verificaiton-pipeline";
+import { inngestClient } from "./client";
+import {
+  documentUploaded,
+  merchantAnalysisRequested,
+  merchantRagSchema,
+  verificationRequested,
+} from "./eventSchemas";
 
-import { markVerificationAsServerError } from "@/app/repositories/verification.repository";
-import { VerificationStatus } from "@/data/enums/db.enums";
-import { type Merchant } from "@/data/types/Merchant";
+type RagProcessingResult = {
+  merchantId: string;
+  verificationId: string;
+  ragContext: string;
+  ragResult: RagDecisionResult;
+  documentResult: unknown;
+};
 
 export const verificationPipeline = inngestClient.createFunction(
   {
@@ -179,8 +196,6 @@ export const documentIngestionPipeline = inngestClient.createFunction(
   },
   async ({ event, step }) => {
     const { secureUrl, source, documentType, merchantId, metadata } = event.data;
-
-    // step1: Extract text from document
     const text = await step.run("extract-document-text", async () => {
       const document_text = await extractTextFromPdf(secureUrl);
       if (!document_text) {
@@ -189,7 +204,6 @@ export const documentIngestionPipeline = inngestClient.createFunction(
       return document_text;
     });
 
-    // step2: Chunk document
     const chunks = await step.run("chunk-document", async () => {
       const document_chunks = await chunkDocument(text);
       if (document_chunks.length === 0) {
@@ -198,27 +212,25 @@ export const documentIngestionPipeline = inngestClient.createFunction(
       return document_chunks;
     });
 
-    // step3: Generate embeddings from chunks
-    const embeddings = await step.run("generate-document-embeddings", async () => {
-        return generateEmbeddings(chunks);
+    const document = await step.run(
+      "generate-embeddings-and-persist",
+      async () => {
+        const embeddings = await generateEmbeddings(chunks);
+
+        return createRagDocumentWithChunks(
+          {
+            source,
+            documentType,
+            merchantId,
+            metadata,
+          },
+          {
+            chunks,
+            embeddings,
+          },
+        );
       },
     );
-
-    // step4: Persist document and chunks to database
-    const document = await step.run("persist-rag-document", async () => {
-      return createRagDocumentWithChunks(
-        {
-          source,
-          documentType,
-          merchantId,
-          metadata,
-        },
-        {
-          chunks,
-          embeddings,
-        },
-      );
-    });
 
     return {
       documentId: document.id,
@@ -231,18 +243,55 @@ export const ragProcessingPipeline = inngestClient.createFunction(
   {
     id: "process-merchant-rag",
     retries: 2,
-    triggers: [
-      invoke(merchantRagSchema),
-    ],
+    triggers: [invoke(merchantRagSchema)],
   },
-  async ({ event, step }) => {
-    const { merchant, verificationId, verificationResult, documentResult } = event.data;
 
-    //TODO: RAG logic will go here
+  async ({ event, step }) => {
+    const { merchant, verificationId, verificationResult, documentResult } =
+      event.data;
+
+    const query = `
+      Merchant name: ${merchant.businessName}
+      Business category: ${merchant.category}
+      GST number: ${merchant.gstNumber}
+      Phone number: ${merchant.phoneNumber}
+    `;
+
+    const queryEmbedding = await step.run(
+      "generate-query-embedding",
+      async () => {
+        const embedding = await generateOneEmbedding(query);
+        if (!embedding) {
+          throw new Error("Failed to generate query embedding");
+        }
+        return embedding;
+      },
+    );
+
+    const retrievedChunks = await step.run(
+      "retrieve-relevant-chunks",
+      async () => {
+        return retrieveRelevantChunks(queryEmbedding, merchant.id, 5);
+      },
+    );
+
+    const ragContext = buildRagContext(
+      retrievedChunks.governmentChunks,
+      retrievedChunks.merchantChunks,
+    );
+
+    const ragResult = await step.run("analyze-merchant-with-rag", async () => {
+      const prompt = buildRagPrompt(merchant, verificationResult, ragContext);
+
+      return structuredRagModel.invoke(prompt);
+    });
 
     return {
       merchantId: merchant.id,
       verificationId,
+      ragContext,
+      ragResult,
+      documentResult,
     };
   },
 );
@@ -278,21 +327,29 @@ export const merchantAnalysisPipeline = inngestClient.createFunction(
     // console.log("Verification result:", verificationResult);
     // console.log("Document result:", documentResult);
 
-    const ragResult = await step.invoke("run-rag", {
+    const ragPipelineResult = (await step.invoke("run-rag", {
       function: ragProcessingPipeline,
       data: {
         // results
-        merchant, 
+        merchant,
         verificationId,
         verificationResult,
         documentResult,
       },
+    })) as RagProcessingResult;
+
+    await step.run("create-investigation", async () => {
+      return createInvestigation({
+        verificationId,
+        action: ragPipelineResult.ragResult.decision,
+        reasoning: JSON.stringify(ragPipelineResult, null, 2),
+      });
     });
 
     return {
       verificationResult,
       documentResult,
-      ragResult
+      ragPipelineResult,
     };
   },
 );

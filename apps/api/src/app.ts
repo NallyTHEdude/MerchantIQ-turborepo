@@ -3,7 +3,12 @@ import express from "express";
 import { serve } from "inngest/express";
 
 import { inngestClient } from "@/config/inngest-pipeline/client";
-import { verificationPipeline, documentIngestionPipeline, merchantAnalysisPipeline } from "./config/inngest-pipeline/functions";
+import {
+  verificationPipeline,
+  documentIngestionPipeline,
+  merchantAnalysisPipeline,
+  ragProcessingPipeline,
+} from "./config/inngest-pipeline/functions";
 
 //import routes
 import healthRoute from "@/app/routes/health.route";
@@ -31,6 +36,7 @@ app.use(
     functions: [
       verificationPipeline,
       documentIngestionPipeline,
+      ragProcessingPipeline,
       merchantAnalysisPipeline,
     ],
   }),

@@ -33,7 +33,7 @@ export const uploadMerchant = async (data: UploadMerchantDto) => {
 
   const pendingVerification = verifications.find(
     (verification) =>
-      verification.verificationStatus === VerificationStatus.PENDING,
+      verification.verificationStatus === VerificationStatus.PENDING, // TODO: SET TYPES FOR ESLINT
   );
 
   if (!pendingVerification) {

@@ -26,3 +26,12 @@ export type MerchantRagInput = {
   verificationResult: unknown;
   documentResult: unknown;
 };
+
+type RetrievedChunk = {
+  id: string;
+  documentId: string;
+  content: string;
+  documentType: DocumentType;
+  source: string;
+  similarity: number;
+};

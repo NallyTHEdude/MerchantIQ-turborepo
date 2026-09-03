@@ -1,8 +1,7 @@
-import { eventType } from "inngest";
+import { eventType, staticSchema } from "inngest";
 import { z } from "zod";
-import { type Merchant } from "@/data/types/Merchant";
+import type { Merchant } from "@/data/types/Merchant";
 import { DocumentType } from "@/data/enums/db.enums";
-import { staticSchema } from "inngest";
 import { MerchantRagInput } from "@/data/types/Rag";
 
 export const verificationRequested = eventType("verification/requested", {
