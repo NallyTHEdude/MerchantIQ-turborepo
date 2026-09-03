@@ -1,7 +1,7 @@
 import { globalErrorHandler } from "@/utils/errors/globalErrorHandler";
 import express from "express";
 import { serve } from "inngest/express";
-
+import { config } from "@/config/env";
 import { inngestClient } from "@/config/inngest-pipeline/client";
 import {
   verificationPipeline,
@@ -9,6 +9,8 @@ import {
   merchantAnalysisPipeline,
   ragProcessingPipeline,
 } from "./config/inngest-pipeline/functions";
+import helmet from "helmet";
+import cors from "cors";
 
 //import routes
 import healthRoute from "@/app/routes/health.route";
@@ -20,12 +22,19 @@ import documentRoute from "@/app/routes/document.route";
 
 const app = express();
 
+app.use(helmet());
 app.use((req, res, next) => {
   if (req.is("multipart/form-data")) {
     return next();
   }
   express.json()(req, res, next);
 });
+app.use(
+  cors({
+    origin: config.FRONTEND_URL,
+    credentials: true,
+  }),
+);
 
 // suggested in docs
 app.use(
