@@ -31,7 +31,9 @@ export const verifications = pgTable(
 
         merchantId: uuid('merchant_id')
             .notNull()
-            .references(() => merchants.id),
+            .references(() => merchants.id, {
+                onDelete: 'cascade',
+            }),
 
         verificationStatus: verificationStatusEnum(
             'verification_status',

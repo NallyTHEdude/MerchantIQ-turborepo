@@ -15,8 +15,9 @@ export const investigations = pgTable(
     {
         id: uuid('id').defaultRandom().primaryKey(),
 
-        verificationId: uuid('verification_id').references(
-            () => verifications.id,
+        verificationId: uuid('verification_id').references(() => verifications.id,{
+                onDelete: 'cascade',
+            },
         ),
 
         action: varchar('action', {

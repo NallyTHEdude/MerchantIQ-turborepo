@@ -1,0 +1,4 @@
+ALTER TABLE "rag_documents" ADD CONSTRAINT "rag_documents_merchant_id_merchants_id_fkey" FOREIGN KEY ("merchant_id") REFERENCES "merchants"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "investigations" DROP CONSTRAINT "investigations_verification_id_verifications_id_fkey", ADD CONSTRAINT "investigations_verification_id_verifications_id_fkey" FOREIGN KEY ("verification_id") REFERENCES "verifications"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "payments" DROP CONSTRAINT "payments_merchant_id_merchants_id_fkey", ADD CONSTRAINT "payments_merchant_id_merchants_id_fkey" FOREIGN KEY ("merchant_id") REFERENCES "merchants"("id") ON DELETE CASCADE;--> statement-breakpoint
+ALTER TABLE "verifications" DROP CONSTRAINT "verifications_merchant_id_merchants_id_fkey", ADD CONSTRAINT "verifications_merchant_id_merchants_id_fkey" FOREIGN KEY ("merchant_id") REFERENCES "merchants"("id") ON DELETE CASCADE;

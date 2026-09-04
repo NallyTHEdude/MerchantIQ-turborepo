@@ -7,6 +7,7 @@ import {
     pgEnum,
 } from 'drizzle-orm/pg-core';
 import { DocumentType } from '@/data/enums/db.enums';
+import { merchants } from './merchants.schema';
 
 export const documentTypeEnum = pgEnum(
     'document_type',
@@ -16,7 +17,9 @@ export const documentTypeEnum = pgEnum(
 export const ragDocuments = pgTable('rag_documents', {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    merchantId: uuid('merchant_id'),
+    merchantId: uuid('merchant_id').references(() => merchants.id, {
+        onDelete: 'cascade',
+    }),
 
     source: varchar('source', {
         length: 500,

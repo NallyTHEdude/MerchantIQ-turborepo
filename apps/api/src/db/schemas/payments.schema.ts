@@ -27,7 +27,9 @@ export const payments = pgTable(
 
         merchantId: uuid('merchant_id')
             .notNull()
-            .references(() => merchants.id),
+            .references(() => merchants.id, {
+                onDelete: 'cascade',
+            }),
 
         amount: decimal('amount', {
             precision: 12,
