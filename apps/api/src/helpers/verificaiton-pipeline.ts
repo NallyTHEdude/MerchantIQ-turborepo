@@ -89,7 +89,7 @@ export const runMlPrediction = async (
 export const buildPipelineResults = (
     merchant: Merchant,
     verification: PipelineResults['verification'],
-    recentPayments: PipelineResults['recentPayments'],
+    // recentPayments: PipelineResults['recentPayments'],
     isPhoneNumberVerified: boolean,
     isGstNumberVerified: boolean,
     websiteData: PipelineResults['websiteData'],
@@ -99,7 +99,7 @@ export const buildPipelineResults = (
     return {
         merchant,
         verification,
-        recentPayments,
+        // recentPayments,
         isPhoneNumberVerified,
         isGstNumberVerified,
         websiteData,

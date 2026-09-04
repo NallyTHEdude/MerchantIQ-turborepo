@@ -144,7 +144,7 @@ export const verificationPipeline = inngestClient.createFunction(
         const pipelineResults = buildPipelineResults(
             merchant,
             verification,
-            recentPayments,
+            // recentPayments,
             isPhoneNumberVerified,
             isGstNumberVerified,
             websiteData,
@@ -283,7 +283,7 @@ export const ragProcessingPipeline = inngestClient.createFunction(
         const retrievedChunks = await step.run(
             'retrieve-relevant-chunks',
             async () => {
-                return retrieveRelevantChunks(queryEmbedding, merchant.id, 5);
+                return retrieveRelevantChunks(queryEmbedding, merchant.id, 2);
             },
         );
 
@@ -301,7 +301,18 @@ export const ragProcessingPipeline = inngestClient.createFunction(
                     ragContext,
                 );
 
-                return structuredRagModel.invoke(prompt);
+                const result = await structuredRagModel.invoke(prompt);
+
+                console.log(
+                    '[RAG] Structured RAG result:',
+                    JSON.stringify(result, null, 2),
+                );
+
+                if (!result) {
+                    throw new Error('RAG returned undefined');
+                }
+
+                return result;
             },
         );
 

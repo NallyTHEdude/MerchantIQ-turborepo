@@ -54,7 +54,7 @@ export type PipelinePayment = Omit<Payment, 'createdAt'> & {
 export type PipelineResults = {
     merchant: Merchant;
     verification: PipelineVerification;
-    recentPayments: PipelinePayment[];
+    // recentPayments: PipelinePayment[];
 
     isPhoneNumberVerified: boolean;
     isGstNumberVerified: boolean;
