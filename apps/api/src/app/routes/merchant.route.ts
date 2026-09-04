@@ -2,10 +2,10 @@ import {
     createMerchant,
     deleteMerchant,
     getAllMerchants,
+    getLatestVerificationOfAllMerchants,
     getMerchantByGstNumber,
     getMerchantById,
     updateMerchant,
-    getLatestVerificationOfAllMerchants,
 } from '@/app/controllers/merchant.controller';
 import { validate } from '@/app/middlewares/validate.middleware';
 import {
@@ -147,6 +147,30 @@ router.get(
     validate(getMerchantByGstNumberValidator),
     getMerchantByGstNumber,
 );
+
+/**
+ * @swagger
+ * /api/merchant/all/latest-verification:
+ *   get:
+ *     tags:
+ *       - Merchant Endpoints
+ *     summary: Get all merchants with their latest verification
+ *     description: Returns every merchant and its latest verification record, when one exists. No authentication is required.
+ *     responses:
+ *       200:
+ *         description: Latest merchant verifications retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MerchantLatestVerificationListResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/all/latest-verification', getLatestVerificationOfAllMerchants);
 
 /**
  * @swagger
@@ -297,7 +321,6 @@ router.get(
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/', validate(createMerchantValidator), createMerchant);
-router.get('/all/latest-verification', getLatestVerificationOfAllMerchants);
 router.get('/:id', validate(getMerchantByIdValidator), getMerchantById);
 router.patch('/:id', validate(updateMerchantValidator), updateMerchant);
 router.delete('/:id', validate(deleteMerchantValidator), deleteMerchant);

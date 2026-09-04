@@ -38,6 +38,10 @@ const options: swaggerJsdoc.Options = {
                 description:
                     'Endpoints for uploading merchant and government compliance documents.',
             },
+            {
+                name: 'Investigation Endpoints',
+                description: 'Endpoints related to verification investigations.',
+            },
         ],
         servers: [
             {
@@ -64,6 +68,7 @@ const options: swaggerJsdoc.Options = {
         './src/app/routes/payment.route.ts',
         './src/app/routes/verification.route.ts',
         './src/app/routes/document.route.ts',
+        './src/app/routes/investigation.route.ts',
     ],
 };
 

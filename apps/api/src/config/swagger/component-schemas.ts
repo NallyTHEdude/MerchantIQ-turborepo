@@ -30,6 +30,16 @@ const paymentExample = {
     createdAt: '2026-08-29T10:40:00.000Z',
 };
 
+const investigationExample = {
+    id: '4d5f6a77-8b90-4c12-a345-6789abcdef01',
+    verificationId: verificationExample.id,
+    action: 'APPROVE',
+    reasoning: 'Merchant information passed all verification checks.',
+    isOverridden: false,
+    overriddenBy: null,
+    createdAt: '2026-08-29T10:45:00.000Z',
+};
+
 export const apiErrorDetailSchema = {
     type: 'object',
     properties: {
@@ -332,6 +342,46 @@ export const merchantListResponseSchema = {
     },
 };
 
+export const merchantLatestVerificationListResponseSchema = {
+    type: 'object',
+    properties: {
+        statusCode: {
+            type: 'integer',
+            example: 200,
+        },
+        data: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    merchant: {
+                        $ref: '#/components/schemas/Merchant',
+                    },
+                    verification: {
+                        allOf: [
+                            {
+                                $ref: '#/components/schemas/Verification',
+                            },
+                        ],
+                        nullable: true,
+                    },
+                },
+                required: ['merchant', 'verification'],
+            },
+        },
+        message: {
+            type: 'string',
+            example:
+                'Latest verifications of all merchants retrieved successfully',
+        },
+        success: {
+            type: 'boolean',
+            example: true,
+        },
+    },
+    required: ['statusCode', 'data', 'message', 'success'],
+};
+
 export const verificationSchema = {
     type: 'object',
     properties: {
@@ -437,6 +487,63 @@ export const verificationListResponseSchema = {
         message: 'Verifications fetched successfully',
         success: true,
     },
+};
+
+export const investigationSchema = {
+    type: 'object',
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+        },
+        verificationId: {
+            type: 'string',
+            format: 'uuid',
+        },
+        action: {
+            type: 'string',
+            maxLength: 255,
+        },
+        reasoning: {
+            type: 'string',
+            nullable: true,
+        },
+        isOverridden: {
+            type: 'boolean',
+        },
+        overriddenBy: {
+            type: 'string',
+            nullable: true,
+        },
+        createdAt: {
+            type: 'string',
+            format: 'date-time',
+        },
+    },
+    required: ['id', 'verificationId', 'action', 'isOverridden', 'createdAt'],
+    example: investigationExample,
+};
+
+export const investigationResponseSchema = {
+    type: 'object',
+    properties: {
+        statusCode: {
+            type: 'integer',
+            example: 200,
+        },
+        data: {
+            $ref: '#/components/schemas/Investigation',
+        },
+        message: {
+            type: 'string',
+            example: 'Investigation retrieved successfully',
+        },
+        success: {
+            type: 'boolean',
+            example: true,
+        },
+    },
+    required: ['statusCode', 'data', 'message', 'success'],
 };
 
 export const paymentStatusSchema = {
@@ -665,9 +772,13 @@ export const componentSchemas = {
     UpdateMerchantRequest: updateMerchantRequestSchema,
     MerchantResponse: merchantResponseSchema,
     MerchantListResponse: merchantListResponseSchema,
+    MerchantLatestVerificationListResponse:
+        merchantLatestVerificationListResponseSchema,
     Verification: verificationSchema,
     VerificationResponse: verificationResponseSchema,
     VerificationListResponse: verificationListResponseSchema,
+    Investigation: investigationSchema,
+    InvestigationResponse: investigationResponseSchema,
     Payment: paymentSchema,
     PaymentStatus: paymentStatusSchema,
     PaymentMethod: paymentMethodSchema,

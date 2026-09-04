@@ -1,14 +1,14 @@
-import Router from 'express';
 import {
-    requestVerification,
-    getVerificationById,
     getAllVerifications,
+    getVerificationById,
+    requestVerification,
 } from '@/app/controllers/verification.controller';
 import { validate } from '@/app/middlewares/validate.middleware';
 import {
-    requestVerificationValidator,
     getVerificationByIdValidator,
+    requestVerificationValidator,
 } from '@/app/validators/verification.validator';
+import Router from 'express';
 
 const router = Router();
 
@@ -82,6 +82,12 @@ const router = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Merchant with the ID does not exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: A pending verification already exists for the merchant
  *         content:
  *           application/json:
  *             schema:
