@@ -12,35 +12,22 @@ import {
     documentUploaded,
     merchantAnalysisRequested,
 } from '@/config/inngest-pipeline/eventSchemas';
-import { DocumentType, VerificationStatus } from '@/data/enums/db.enums';
-import { getAllVerifications } from '@/app/repositories/verification.repository';
+import { DocumentType } from '@/data/enums/db.enums';
+import { request as requestVerification } from '@/app/services/verification.service';
 
 export const uploadMerchant = async (data: UploadMerchantDto) => {
     const { fileStream, merchantId, originalFilename } = data;
 
-    if (!merchantId || merchantId.trim() === '') {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Merchant ID is required');
+    if (!merchantId) {
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST, 
+            'Merchant ID is required'
+        );
     }
 
     const merchant = await getMerchantById(merchantId);
-
     if (!merchant) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Merchant not found');
-    }
-
-    // Find the pending verification for this merchant
-    const verifications = await getAllVerifications(merchant.id);
-
-    const pendingVerification = verifications.find(
-        (verification) =>
-            verification.verificationStatus === VerificationStatus.PENDING, // TODO: SET TYPES FOR ESLINT
-    );
-
-    if (!pendingVerification) {
-        throw new ApiError(
-            StatusCodes.BAD_REQUEST,
-            'No pending verification found for merchant',
-        );
     }
 
     // Upload merchant document
@@ -49,7 +36,6 @@ export const uploadMerchant = async (data: UploadMerchantDto) => {
         subFolder: merchant.id,
         originalFilename,
     });
-
     if (!uploadResult) {
         throw new ApiError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -57,11 +43,16 @@ export const uploadMerchant = async (data: UploadMerchantDto) => {
         );
     }
 
+    // Create a new pending verification
+    const verification = await requestVerification({
+        merchant,
+    });
+
     // Start the complete merchant analysis workflow
     await inngestClient.send(
         merchantAnalysisRequested.create({
             merchant,
-            verificationId: pendingVerification.id,
+            verificationId: verification.id,
             isMerchantUpdate: false,
             document: {
                 secureUrl: uploadResult.secureUrl,
