@@ -1,7 +1,5 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Check, FileJson, FileText, Upload, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +13,6 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
     Select,
     SelectContent,
@@ -23,25 +20,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import {
     merchantCategories,
-    type CreateMerchantPayload,
     type GstRegistrationCertificate,
     type Merchant,
     type PaymentRecord,
 } from '@/data/merchants';
+import { api, isMerchantCategory } from '@/lib/api';
+import { Check, FileJson, FileText, Upload, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 type Props = { onCreated: (merchant: Merchant) => void };
-
-const stages: Merchant['stage'][] = [
-    'Phone Number Verification',
-    'GST Verification',
-    'Website Verification',
-    'Payment / Transaction Analysis',
-    'Trust Score + Risk Level',
-    'LangGraph Reasoning / Action',
-    'Compliance RAG',
-];
 
 export function CreateMerchantDialog({ onCreated }: Props) {
     const [open, setOpen] = useState(false);
@@ -82,12 +72,7 @@ export function CreateMerchantDialog({ onCreated }: Props) {
             !/\.pdf$/i.test(nextFile.name)
         )
             return setGstError('Upload a PDF file.');
-        setGstCertificate({
-            name: nextFile.name,
-            type: 'application/pdf',
-            size: nextFile.size,
-            lastModified: nextFile.lastModified,
-        });
+        setGstCertificate(nextFile);
     };
     const parseFile = (nextFile: File) => {
         setError('');
@@ -102,30 +87,27 @@ export function CreateMerchantDialog({ onCreated }: Props) {
                     : Array.isArray(value.records)
                       ? value.records
                       : [value];
-                const normalized = rows.map((row, index) => {
+                const normalized: PaymentRecord[] = rows.map((row: unknown) => {
                     if (!row || typeof row !== 'object') throw new Error();
                     const item = row as Record<string, unknown>;
                     const amount = Number(
                         item.amount ?? item.total ?? item.value,
                     );
+                    const status = String(item.status ?? '');
+                    const paymentMethod = String(item.paymentMethod ?? '');
                     if (
                         !Number.isFinite(amount) ||
                         amount <= 0 ||
-                        typeof (item.currency ?? 'USD') !== 'string' ||
-                        typeof (item.status ?? 'completed') !== 'string'
+                        !['SUCCESS', 'FAILED', 'REFUNDED'].includes(status) ||
+                        !['CARD', 'UPI', 'NET_BANKING'].includes(paymentMethod)
                     )
                         throw new Error();
                     return {
-                        id: String(item.id ?? `payment-${index + 1}`),
-                        amount,
-                        currency: String(item.currency ?? 'USD'),
-                        status: String(item.status ?? 'completed'),
-                        createdAt: String(
-                            item.createdAt ?? new Date().toISOString(),
-                        ),
-                        customerId: item.customerId
-                            ? String(item.customerId)
-                            : undefined,
+                        amount: amount.toFixed(2),
+                        status: status as PaymentRecord['status'],
+                        paymentMethod:
+                            paymentMethod as PaymentRecord['paymentMethod'],
+                        isInternational: Boolean(item.isInternational),
                     };
                 });
                 if (!normalized.length) throw new Error();
@@ -156,59 +138,52 @@ export function CreateMerchantDialog({ onCreated }: Props) {
         setError('');
         setStep(2);
     };
-    const create = () => {
-        const payload: CreateMerchantPayload = {
-            name: name.trim(),
-            website: website.trim(),
-            category,
-            phone: phone.trim(),
-            gstNumber: gstNumber.trim(),
-            paymentRecords,
-            gstCertificate: gstCertificate!,
-        };
-        const id = `${payload.name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '')}-${Date.now()}`;
-        const merchant: Merchant = {
-            id,
-            name: name.trim(),
-            legalName: name.trim(),
-            gstNumber: gstNumber.trim(),
-            status: 'In progress',
-            risk: 'Low',
-            trustScore: 0,
-            stage: 'Phone Number Verification',
-            updatedAt: 'Just now',
-            submittedAt: 'Aug 30, 2026',
-            country: 'United States',
-            category,
-            website: website.replace(/^https?:\/\//i, ''),
-            phone: phone.trim(),
-            email: '',
-            merchantId: `mrc_${Date.now().toString(36)}`,
-            assessment:
-                'Verification has started and evidence is being collected.',
-            logisticRegression: 'Pending analysis',
-            isolationForest: 'Pending analysis',
-            riskSignals: [],
-            complianceConcerns: [],
-            ragContext: 'No compliance context has been retrieved yet.',
-            recommendedAction: 'Complete Phone Number Verification.',
-            checks: stages.map((stage, index) => ({
-                stage,
-                state: index === 0 ? 'processing' : 'review',
-                result: index === 0 ? 'Queued' : 'Not started',
-                timestamp: 'Just now',
-                explanation:
-                    index === 0
-                        ? 'Verification job is ready to begin.'
-                        : 'Waiting for upstream verification results.',
-            })),
-        };
-        onCreated(merchant);
-        setOpen(false);
-        reset();
+    const create = async () => {
+        if (!isMerchantCategory(category) || !gstCertificate) {
+            setError('Complete the merchant details and upload a GST PDF.');
+            return;
+        }
+
+        setError('');
+        try {
+            const merchantResponse = await api.createMerchant({
+                businessName: name.trim(),
+                websiteUrl: website.trim(),
+                category,
+                phoneNumber: phone.trim(),
+                gstNumber: gstNumber.trim(),
+            });
+            const merchantData = merchantResponse.data;
+
+            await api.createPayments(merchantData.id, paymentRecords);
+            await api.uploadMerchantDocument(merchantData.id, gstCertificate);
+
+            const merchant: Merchant = {
+                id: merchantData.id,
+                name: merchantData.businessName,
+                legalName: merchantData.businessName,
+                status: 'PENDING',
+                risk: 'VERY_HIGH',
+                trustScore: 0,
+                stage: 'Phone Number Verification',
+                updatedAt: merchantData.createdAt,
+                submittedAt: merchantData.createdAt,
+                category: merchantData.category,
+                website: merchantData.websiteUrl,
+                phone: merchantData.phoneNumber,
+                gstNumber: merchantData.gstNumber,
+                merchantId: merchantData.id,
+            };
+            onCreated(merchant);
+            setOpen(false);
+            reset();
+        } catch (requestError) {
+            setError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : 'Failed to create merchant.',
+            );
+        }
     };
 
     return (
@@ -222,7 +197,7 @@ export function CreateMerchantDialog({ onCreated }: Props) {
             <DialogTrigger render={<Button size="sm" className="h-8" />}>
                 Create merchant
             </DialogTrigger>
-            <DialogContent className="border-border bg-card sm:max-w-[560px]">
+            <DialogContent className="border-border bg-card sm:max-w-140">
                 <DialogHeader>
                     <DialogTitle>Create merchant</DialogTitle>
                     <DialogDescription>
@@ -257,7 +232,9 @@ export function CreateMerchantDialog({ onCreated }: Props) {
                                 Category
                                 <Select
                                     value={category}
-                                    onValueChange={setCategory}
+                                    onValueChange={(value) =>
+                                        setCategory(value ?? '')
+                                    }
                                 >
                                     <SelectTrigger aria-label="Merchant category">
                                         <SelectValue placeholder="Select category" />
@@ -455,10 +432,10 @@ export function CreateMerchantDialog({ onCreated }: Props) {
                                 </p>
                                 <p>
                                     <span className="text-muted-foreground">
-                                        Contact
+                                        Phone
                                     </span>
                                     <br />
-                                    {email}
+                                    {phone}
                                 </p>
                                 <p>
                                     <span className="text-muted-foreground">

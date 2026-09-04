@@ -1,9 +1,9 @@
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Badge } from '@/components/ui/badge';
-import { merchantById } from '@/data/merchants';
+import { api, displayLabel } from '@/lib/api';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default async function MerchantDetailPage({
     params,
@@ -11,8 +11,18 @@ export default async function MerchantDetailPage({
     params: Promise<{ merchantId: string }>;
 }) {
     const { merchantId } = await params;
-    const merchant = merchantById(merchantId);
-    if (!merchant) notFound();
+    let merchant;
+    let verification;
+    try {
+        const [merchantResponse, verificationResponse] = await Promise.all([
+            api.merchant(merchantId),
+            api.verifications(merchantId),
+        ]);
+        merchant = merchantResponse.data;
+        verification = verificationResponse.data.at(-1) ?? null;
+    } catch {
+        notFound();
+    }
 
     return (
         <AppShell>
@@ -27,13 +37,17 @@ export default async function MerchantDetailPage({
                 <header className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-                            {merchant.name}
+                            {merchant.businessName}
                         </h1>
-                        <Badge>{merchant.status}</Badge>
+                        <Badge>
+                            {displayLabel(
+                                verification?.verificationStatus ?? 'PENDING',
+                            )}
+                        </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        {merchant.legalName} · {merchant.category} ·{' '}
-                        {merchant.country}
+                        {merchant.businessName} ·{' '}
+                        {displayLabel(merchant.category)}
                     </p>
                 </header>
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -42,7 +56,9 @@ export default async function MerchantDetailPage({
                             Risk level
                         </p>
                         <p className="mt-2 text-sm font-medium text-foreground">
-                            {merchant.risk}
+                            {displayLabel(
+                                verification?.riskLevel ?? 'VERY_HIGH',
+                            )}
                         </p>
                     </div>
                     <div className="rounded-lg border border-border bg-card px-4 py-4">
@@ -50,7 +66,7 @@ export default async function MerchantDetailPage({
                             Trust score
                         </p>
                         <p className="mt-2 font-mono text-sm font-medium text-foreground">
-                            {merchant.trustScore}/100
+                            {verification?.trustscore ?? 0}/100
                         </p>
                     </div>
                     <div className="rounded-lg border border-border bg-card px-4 py-4">
@@ -58,7 +74,9 @@ export default async function MerchantDetailPage({
                             Current stage
                         </p>
                         <p className="mt-2 text-sm font-medium text-foreground">
-                            {merchant.stage}
+                            {verification
+                                ? 'Verification in progress'
+                                : 'Awaiting verification'}
                         </p>
                     </div>
                 </div>

@@ -1,6 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { CheckState, Merchant, PipelineCheck } from '@/data/merchants';
 import {
     AlertCircle,
     CheckCircle2,
@@ -10,20 +22,7 @@ import {
     ShieldAlert,
     XCircle,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { CheckState, Merchant, PipelineCheck } from '@/data/merchants';
+import { useEffect, useRef, useState } from 'react';
 
 const stateStyles: Record<
     CheckState,
@@ -98,7 +97,8 @@ function CheckRow({
                                 Logistic Regression
                             </p>
                             <p className="mt-1 text-[11px] text-foreground">
-                                {merchant.logisticRegression}
+                                {merchant.logisticRegression ??
+                                    'Not provided by backend.'}
                             </p>
                         </div>
                         <div className="rounded-md border border-border/70 bg-card/40 px-2.5 py-2">
@@ -106,7 +106,8 @@ function CheckRow({
                                 Isolation Forest
                             </p>
                             <p className="mt-1 text-[11px] text-foreground">
-                                {merchant.isolationForest}
+                                {merchant.isolationForest ??
+                                    'Not provided by backend.'}
                             </p>
                         </div>
                     </div>
@@ -129,18 +130,18 @@ function ChecksTab({ merchant }: { merchant: Merchant }) {
                     </h3>
                     <span className="text-[11px] text-muted-foreground">
                         {
-                            merchant.checks.filter(
+                            (merchant.checks ?? []).filter(
                                 (check) => check.state === 'success',
                             ).length
                         }
-                        /{merchant.checks.length} passed
+                        /{(merchant.checks ?? []).length} passed
                     </span>
                 </div>
                 <div className="mt-2">
                     <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
                         Evidence verification
                     </p>
-                    {merchant.checks.slice(0, 3).map((check) => (
+                    {(merchant.checks ?? []).slice(0, 3).map((check) => (
                         <CheckRow
                             key={check.stage}
                             check={check}
@@ -150,7 +151,7 @@ function ChecksTab({ merchant }: { merchant: Merchant }) {
                     <p className="mb-1 mt-3 text-[10px] uppercase tracking-wider text-muted-foreground">
                         Analysis and decisioning
                     </p>
-                    {merchant.checks.slice(3, 6).map((check) => (
+                    {(merchant.checks ?? []).slice(3, 6).map((check) => (
                         <CheckRow
                             key={check.stage}
                             check={check}
@@ -160,7 +161,7 @@ function ChecksTab({ merchant }: { merchant: Merchant }) {
                     <p className="mb-1 mt-3 text-[10px] uppercase tracking-wider text-muted-foreground">
                         Compliance context
                     </p>
-                    {merchant.checks.slice(6).map((check) => (
+                    {(merchant.checks ?? []).slice(6).map((check) => (
                         <CheckRow
                             key={check.stage}
                             check={check}
@@ -199,11 +200,16 @@ function RiskTab({ merchant }: { merchant: Merchant }) {
             <section className="grid gap-3 sm:grid-cols-2">
                 <RiskModel
                     label="Logistic Regression"
-                    value={merchant.logisticRegression}
+                    value={
+                        merchant.logisticRegression ??
+                        'Not provided by backend.'
+                    }
                 />
                 <RiskModel
                     label="Isolation Forest"
-                    value={merchant.isolationForest}
+                    value={
+                        merchant.isolationForest ?? 'Not provided by backend.'
+                    }
                 />
             </section>
             <Separator />
@@ -217,7 +223,7 @@ function RiskTab({ merchant }: { merchant: Merchant }) {
                         Risk signals
                     </h3>
                 </div>
-                {merchant.riskSignals.length ? (
+                {merchant.riskSignals?.length ? (
                     <ul className="mt-3 flex flex-col gap-2">
                         {merchant.riskSignals.map((signal) => (
                             <li
@@ -248,8 +254,8 @@ function RiskModel({ label, value }: { label: string; value: string }) {
 
 function getDecision(merchant: Merchant) {
     const processing =
-        merchant.status === 'In progress' ||
-        merchant.checks.some((check) => check.state === 'processing');
+        merchant.status === 'PENDING' ||
+        (merchant.checks ?? []).some((check) => check.state === 'processing');
     if (processing)
         return {
             title: 'Verification in progress',
@@ -257,7 +263,12 @@ function getDecision(merchant: Merchant) {
                 'Final decision will be available when all required checks complete.',
             actions: [] as string[],
         };
-    if (merchant.status === 'Blocked' || merchant.risk === 'High')
+    if (
+        merchant.status === 'FAILED' ||
+        merchant.status === 'SERVER_ERROR' ||
+        merchant.risk === 'HIGH' ||
+        merchant.risk === 'VERY_HIGH'
+    )
         return {
             title: 'Keep merchant blocked',
             description:
@@ -265,9 +276,9 @@ function getDecision(merchant: Merchant) {
             actions: ['Request evidence', 'Keep blocked'],
         };
     if (
-        merchant.status === 'Verified' &&
-        merchant.risk === 'Low' &&
-        merchant.checks.every((check) => check.state === 'success')
+        merchant.status === 'COMPLETED' &&
+        merchant.risk === 'LOW' &&
+        (merchant.checks ?? []).every((check) => check.state === 'success')
     )
         return {
             title: 'Approve merchant',
@@ -291,7 +302,7 @@ function ComplianceTab({ merchant }: { merchant: Merchant }) {
                     LangGraph assessment
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-foreground">
-                    {merchant.assessment}
+                    {merchant.assessment ?? 'Not provided by backend.'}
                 </p>
             </section>
             <Separator />
@@ -299,7 +310,7 @@ function ComplianceTab({ merchant }: { merchant: Merchant }) {
                 <h3 className="text-xs font-semibold text-foreground">
                     Document compliance concerns
                 </h3>
-                {merchant.complianceConcerns.length ? (
+                {merchant.complianceConcerns?.length ? (
                     <ul className="mt-3 flex flex-col gap-2">
                         {merchant.complianceConcerns.map((concern) => (
                             <li
@@ -321,7 +332,7 @@ function ComplianceTab({ merchant }: { merchant: Merchant }) {
                     RAG-derived regulatory context
                 </p>
                 <p className="mt-2 text-xs leading-5 text-foreground">
-                    {merchant.ragContext}
+                    {merchant.ragContext ?? 'Not provided by backend.'}
                 </p>
             </section>
         </div>
@@ -406,11 +417,12 @@ export function MerchantReviewSheet({
                         </div>
                         <StatusBadge
                             state={
-                                merchant.status === 'Verified'
+                                merchant.status === 'COMPLETED'
                                     ? 'success'
-                                    : merchant.status === 'Blocked'
+                                    : merchant.status === 'FAILED' ||
+                                        merchant.status === 'SERVER_ERROR'
                                       ? 'failed'
-                                      : merchant.status === 'In progress'
+                                      : merchant.status === 'PENDING'
                                         ? 'processing'
                                         : 'review'
                             }

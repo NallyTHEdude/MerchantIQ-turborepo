@@ -1,7 +1,6 @@
 'use client';
 
-import { ArrowUpDown, ChevronRight, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { CreateMerchantDialog } from '@/components/CreateMerchantDialog';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,18 +27,22 @@ import {
     type RiskLevel,
     type VerificationStatus,
 } from '@/data/merchants';
-import { CreateMerchantDialog } from '@/components/CreateMerchantDialog';
+import { displayLabel } from '@/lib/api';
+import { ArrowUpDown, ChevronRight, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const statusTone: Record<VerificationStatus, string> = {
-    Pending: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-    Completed: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    Failed: 'border-red-400/30 bg-red-400/10 text-red-300',
+    PENDING: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+    SERVER_ERROR: 'border-red-400/30 bg-red-400/10 text-red-300',
+    COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+    FAILED: 'border-red-400/30 bg-red-400/10 text-red-300',
 };
 
 const riskTone: Record<RiskLevel, string> = {
-    Low: 'text-emerald-400',
-    Medium: 'text-amber-300',
-    High: 'text-red-400',
+    LOW: 'text-emerald-400',
+    MODERATE: 'text-amber-300',
+    HIGH: 'text-red-400',
+    VERY_HIGH: 'text-red-400',
 };
 
 function MerchantRow({
@@ -74,17 +77,17 @@ function MerchantRow({
             </TableCell>
             <TableCell className="border-r border-border/40">
                 <Badge
-                    variant={statusTone[merchant.status]}
-                    className="whitespace-nowrap text-[11px] font-normal"
+                    variant="outline"
+                    className={`${statusTone[merchant.status]} whitespace-nowrap text-[11px] font-normal`}
                 >
-                    {merchant.status}
+                    {displayLabel(merchant.status)}
                 </Badge>
             </TableCell>
             <TableCell className="border-r border-border/40">
                 <span
                     className={`text-xs font-medium ${riskTone[merchant.risk]}`}
                 >
-                    {merchant.risk}
+                    {displayLabel(merchant.risk)}
                 </span>
             </TableCell>
             <TableCell className="border-r border-border/40">
@@ -110,10 +113,14 @@ function MerchantRow({
 
 export function MerchantQueue({
     merchants,
+    loading,
+    error,
     onSelect,
     onCreated,
 }: {
     merchants: Merchant[];
+    loading: boolean;
+    error: string | null;
     onSelect: (merchant: Merchant) => void;
     onCreated: (merchant: Merchant) => void;
 }) {
@@ -131,10 +138,11 @@ export function MerchantQueue({
     const counts = records.reduce(
         (acc, merchant) => {
             acc[merchant.status] += 1;
-            if (merchant.risk === 'High') acc.high += 1;
+            if (merchant.risk === 'HIGH' || merchant.risk === 'VERY_HIGH')
+                acc.high += 1;
             return acc;
         },
-        { Pending: 0, Completed: 0, Failed: 0, high: 0 },
+        { PENDING: 0, SERVER_ERROR: 0, COMPLETED: 0, FAILED: 0, high: 0 },
     );
     const toggleSort = (key: typeof sortKey) => {
         if (sortKey === key) setSortAsc((value) => !value);
@@ -152,6 +160,7 @@ export function MerchantQueue({
                         `${merchant.name} ${merchant.legalName} ${merchant.category}`
                             .toLowerCase()
                             .includes(query.toLowerCase());
+
                     return (
                         matchesQuery &&
                         (status === 'all' || merchant.status === status) &&
@@ -161,6 +170,7 @@ export function MerchantQueue({
                 })
                 .sort((a, b) => {
                     const direction = sortAsc ? 1 : -1;
+
                     const values: Record<
                         typeof sortKey,
                         [string | number, string | number]
@@ -172,12 +182,14 @@ export function MerchantQueue({
                         category: [a.category, b.category],
                         updated: [a.updatedAt, b.updatedAt],
                     };
+
                     const [left, right] = values[sortKey];
+
                     return typeof left === 'number'
                         ? (left - (right as number)) * direction
                         : String(left).localeCompare(String(right)) * direction;
                 }),
-        [category, query, risk, sortAsc, sortKey, status],
+        [records, category, query, risk, sortAsc, sortKey, status],
     );
 
     const summary = counts;
@@ -230,12 +242,12 @@ export function MerchantQueue({
                             <SelectTrigger
                                 id="category-filter"
                                 aria-label="Category filter"
-                                className="h-9 w-[145px] border-border bg-card text-xs"
+                                className="h-9 w-36.25 border-border bg-card text-xs"
                             >
                                 <SelectValue>
                                     {category === 'all'
                                         ? 'Category: All'
-                                        : `Category: ${category}`}
+                                        : `Category: ${displayLabel(category)}`}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -244,7 +256,7 @@ export function MerchantQueue({
                                 </SelectItem>
                                 {merchantCategories.map((item) => (
                                     <SelectItem key={item} value={item}>
-                                        Category: {item}
+                                        Category: {displayLabel(item)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -263,19 +275,19 @@ export function MerchantQueue({
                             <SelectTrigger
                                 id="status-filter"
                                 aria-label="Status filter"
-                                className="h-9 w-[145px] border-border bg-card text-xs"
+                                className="h-9 w-36.25 border-border bg-card text-xs"
                             >
                                 <SelectValue>
                                     {status === 'all'
                                         ? 'Status: All'
-                                        : `Status: ${status}`}
+                                        : `Status: ${displayLabel(status)}`}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Status: All</SelectItem>
                                 {verificationStatuses.map((item) => (
                                     <SelectItem key={item} value={item}>
-                                        Status: {item}
+                                        Status: {displayLabel(item)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -294,19 +306,19 @@ export function MerchantQueue({
                             <SelectTrigger
                                 id="risk-filter"
                                 aria-label="Risk filter"
-                                className="h-9 w-[145px] border-border bg-card text-xs"
+                                className="h-9 w-36.25 border-border bg-card text-xs"
                             >
                                 <SelectValue>
                                     {risk === 'all'
                                         ? 'Risk: All'
-                                        : `Risk: ${risk}`}
+                                        : `Risk: ${displayLabel(risk)}`}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Risk: All</SelectItem>
                                 {riskLevels.map((item) => (
                                     <SelectItem key={item} value={item}>
-                                        Risk: {item}
+                                        Risk: {displayLabel(item)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -315,7 +327,7 @@ export function MerchantQueue({
                 </div>
                 <Separator />
                 <div className="w-full overflow-hidden rounded-lg border border-border bg-card/30">
-                    <div className="merchant-table-header pr-[5px]">
+                    <div className="merchant-table-header pr-1.25">
                         <Table className="w-full table-fixed">
                             <TableHeader className="bg-card/60">
                                 <TableRow className="border-border bg-card/60 hover:bg-card/60">
@@ -359,10 +371,28 @@ export function MerchantQueue({
                             </TableHeader>
                         </Table>
                     </div>
-                    <div className="merchant-table-scroll h-[32rem] overflow-y-scroll">
+                    <div className="merchant-table-scroll h-128 overflow-y-scroll">
                         <Table className="w-full table-fixed">
                             <TableBody>
-                                {filtered.length ? (
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={7}
+                                            className="h-28 text-center text-sm text-muted-foreground"
+                                        >
+                                            Loading merchants...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : error ? (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={7}
+                                            className="h-28 text-center text-sm text-destructive"
+                                        >
+                                            {error}
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filtered.length ? (
                                     filtered.map((merchant) => (
                                         <MerchantRow
                                             key={merchant.id}
