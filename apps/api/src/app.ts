@@ -19,6 +19,7 @@ import paymentRoute from '@/app/routes/payment.route';
 import verificationRoute from '@/app/routes/verification.route';
 import swaggerRouter from '@/config/swagger/swagger';
 import documentRoute from '@/app/routes/document.route';
+import investigationRoute from '@/app/routes/investigation.route';
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/api/merchant', merchantRoute);
 app.use('/api/verification', verificationRoute);
 app.use('/api/payment', paymentRoute);
 app.use('/api/document', documentRoute);
+app.use('/api/investigation', investigationRoute);
 
 app.use(globalErrorHandler);
 
