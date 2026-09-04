@@ -13,6 +13,7 @@ import {
     createMerchant,
     deleteMerchantById,
     getLatestVerificationOfAllMerchants,
+    updateMerchant,
 } from '../repositories/merchant.repository';
 import { request as requestVerification } from '@/app/services/verification.service';
 import { inngestClient } from '@/config/inngest-pipeline/client';
@@ -44,20 +45,32 @@ export const getByGstNumber = async (gstNumber: string): Promise<Merchant> => {
     return merchant;
 };
 
+// if merchant with same gst number already exists, update it instead of creating a new one ensuring end to end onboarding flow is maintained
 export const create = async (
     merchantData: CreateMerchantDto,
 ): Promise<Merchant> => {
     const existingMerchant: Merchant | null = await getMerchantByGstNumber(
         merchantData.gstNumber,
     );
+
     if (existingMerchant) {
-        throw new ApiError(
-            StatusCodes.CONFLICT,
-            `Merchant with GST number: ${merchantData.gstNumber} already exists`,
+        const updatedMerchant: Merchant | null = await updateMerchant(
+            existingMerchant.id,
+            merchantData,
         );
+
+        if (!updatedMerchant) {
+            throw new ApiError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                'Failed to update existing merchant',
+            );
+        }
+
+        return updatedMerchant;
     }
 
     const newMerchant: Merchant | null = await createMerchant(merchantData);
+
     if (!newMerchant) {
         throw new ApiError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -65,14 +78,11 @@ export const create = async (
         );
     }
 
-    await requestVerification({
-        merchant: newMerchant,
-    });
-
     return newMerchant;
 };
 
-// new verification is created on merchat update, so we need to trigger the pipeline here
+// // TODO: Handle merchant updates after verification succeeds.
+// Currently, updates are staged and applied by the verification pipeline.
 export const update = async (
     id: string,
     newMerchantData: UpdateMerchantDto,
