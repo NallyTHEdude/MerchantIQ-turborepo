@@ -35,6 +35,7 @@ import {
     merchantRagSchema,
     verificationRequested,
 } from './eventSchemas';
+import {RagDecision} from "@/data/enums/rag.enums";
 
 type RagProcessingResult = {
     merchantId: string;
@@ -346,21 +347,39 @@ export const merchantAnalysisPipeline = inngestClient.createFunction(
         // console.log("Verification result:", verificationResult);
         // console.log("Document result:", documentResult);
 
-        const ragPipelineResult = (await step.invoke('run-rag', {
-            function: ragProcessingPipeline,
-            data: {
-                // results
-                merchant,
-                verificationId,
-                verificationResult,
-                documentResult,
-            },
-        })) as RagProcessingResult;
+        let ragPipelineResult: RagProcessingResult | null = null;
+
+        try {
+            ragPipelineResult = (await step.invoke('run-rag', {
+                function: ragProcessingPipeline,
+                data: {
+                    merchant,
+                    verificationId,
+                    verificationResult,
+                    documentResult,
+                },
+            })) as RagProcessingResult;
+        } catch (error) {
+            console.error(
+                `RAG pipeline failed for merchant ${merchant.id}`,
+                error,
+            );
+
+            await step.run('create-failed-investigation', async () => {
+                return createInvestigation({
+                    verificationId,
+                    action: RagDecision.SERVER_ERROR,
+                    reasoning: 'server error',
+                });
+            });
+
+            throw error;
+        }
 
         await step.run('create-investigation', async () => {
             return createInvestigation({
                 verificationId,
-                action: ragPipelineResult.ragResult.decision,
+                action: ragPipelineResult!.ragResult.decision,
                 reasoning: JSON.stringify(ragPipelineResult, null, 2),
             });
         });
