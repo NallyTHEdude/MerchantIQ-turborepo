@@ -1,4 +1,5 @@
 import {
+    type MerchantWithLatestVerification,
     type CreateMerchantDto,
     type Merchant,
     type UpdateMerchantDto,
@@ -11,6 +12,7 @@ import {
     getMerchantByGstNumber,
     createMerchant,
     deleteMerchantById,
+    getLatestVerificationOfAllMerchants,
 } from '../repositories/merchant.repository';
 import { request as requestVerification } from '@/app/services/verification.service';
 import { inngestClient } from '@/config/inngest-pipeline/client';
@@ -113,4 +115,10 @@ export const deleteById = async (id: string): Promise<Merchant> => {
         );
     }
     return deletedMerchant;
+};
+
+export const getAllLatestVerification = async (): Promise<
+    MerchantWithLatestVerification[]
+> => {
+    return getLatestVerificationOfAllMerchants();
 };

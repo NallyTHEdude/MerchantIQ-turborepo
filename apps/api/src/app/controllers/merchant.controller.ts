@@ -15,6 +15,7 @@ import {
     getByGstNumber,
     getById,
     update,
+    getAllLatestVerification,
 } from '../services/merchant.service';
 
 export const getAllMerchants = asyncHandler(
@@ -85,6 +86,17 @@ export const deleteMerchant = asyncHandler(
             StatusCodes.OK,
             deletedMerchant,
             'Merchant deleted successfully',
+        ).send(res);
+    },
+);
+
+export const getLatestVerificationOfAllMerchants = asyncHandler(
+    async (_req: Request, res: Response) => {
+        const latestVerifications = await getAllLatestVerification();
+        new ApiResponse(
+            StatusCodes.OK,
+            latestVerifications,
+            'Latest verifications of all merchants retrieved successfully',
         ).send(res);
     },
 );

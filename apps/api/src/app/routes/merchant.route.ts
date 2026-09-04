@@ -5,6 +5,7 @@ import {
     getMerchantByGstNumber,
     getMerchantById,
     updateMerchant,
+    getLatestVerificationOfAllMerchants,
 } from '@/app/controllers/merchant.controller';
 import { validate } from '@/app/middlewares/validate.middleware';
 import {
@@ -296,6 +297,7 @@ router.get(
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/:id', validate(getMerchantByIdValidator), getMerchantById);
+router.get('/all/latest-verification', getLatestVerificationOfAllMerchants);
 router.post('/', validate(createMerchantValidator), createMerchant);
 router.patch('/:id', validate(updateMerchantValidator), updateMerchant);
 router.delete('/:id', validate(deleteMerchantValidator), deleteMerchant);

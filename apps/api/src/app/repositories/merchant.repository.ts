@@ -2,10 +2,12 @@ import {
     type CreateMerchantDto,
     type Merchant,
     type UpdateMerchantDto,
+    type MerchantWithLatestVerification,
 } from '@/data/types/Merchant';
 import { db } from '@/db';
 import { merchants as merchantTable } from '@/db/schemas/merchants.schema';
-import { eq } from 'drizzle-orm';
+import { verifications as verificationTable } from '@/db/schemas/verifications.schema';
+import { eq, desc } from 'drizzle-orm';
 
 export const getAllMerchants = async (): Promise<Merchant[]> => {
     return db.select().from(merchantTable);
@@ -65,4 +67,37 @@ export const deleteMerchantById = async (
         .returning();
 
     return deletedMerchant ?? null;
+};
+
+export const getLatestVerificationOfAllMerchants = async (): Promise<MerchantWithLatestVerification[]> => {
+    return db
+        .selectDistinctOn([merchantTable.id], {
+            merchant: {
+                id: merchantTable.id,
+                businessName: merchantTable.businessName,
+                category: merchantTable.category,
+                gstNumber: merchantTable.gstNumber,
+                websiteUrl: merchantTable.websiteUrl,
+                phoneNumber: merchantTable.phoneNumber,
+                createdAt: merchantTable.createdAt,
+            },
+
+            verification: {
+                id: verificationTable.id,
+                merchantId: verificationTable.merchantId,
+                verificationStatus: verificationTable.verificationStatus,
+                isGstNumberVerified: verificationTable.isGstNumberVerified,
+                isWebsiteVerified: verificationTable.isWebsiteVerified,
+                isPhoneNumberVerified: verificationTable.isPhoneNumberVerified,
+                trustscore: verificationTable.trustscore,
+                riskLevel: verificationTable.riskLevel,
+                createdAt: verificationTable.createdAt,
+            },
+        })
+        .from(merchantTable)
+        .leftJoin(
+            verificationTable,
+            eq(merchantTable.id, verificationTable.merchantId),
+        )
+        .orderBy(merchantTable.id, desc(verificationTable.createdAt));
 };
