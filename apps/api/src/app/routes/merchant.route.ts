@@ -296,9 +296,9 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/:id', validate(getMerchantByIdValidator), getMerchantById);
-router.get('/all/latest-verification', getLatestVerificationOfAllMerchants);
 router.post('/', validate(createMerchantValidator), createMerchant);
+router.get('/all/latest-verification', getLatestVerificationOfAllMerchants);
+router.get('/:id', validate(getMerchantByIdValidator), getMerchantById);
 router.patch('/:id', validate(updateMerchantValidator), updateMerchant);
 router.delete('/:id', validate(deleteMerchantValidator), deleteMerchant);
 
