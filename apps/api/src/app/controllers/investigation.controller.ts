@@ -12,8 +12,8 @@ export const getInvestigationByVerificationIdController = asyncHandler(
             await getInvestigationByVerificationIdService(verificationId);
         new ApiResponse(
             StatusCodes.OK,
-            'Investigation retrieved successfully',
             investigation,
+            'Investigation retrieved successfully',
         ).send(res);
     },
 );
