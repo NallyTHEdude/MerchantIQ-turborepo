@@ -80,10 +80,8 @@ export const create = async (
 
     return newMerchant;
 };
-
-// // FIXME: Handle merchant updates after verification succeeds. 
-// UPDATE: THIS IS NOT REQUIRED, CREATE MERCHANT HANDLES UPDATES IF GST NUMBER ALREADY EXISTS. DEPRICATED ROUTE I SAY
-// Currently, updates are staged and applied by the verification pipeline.
+ 
+// UPDATE -> DEPRICATED ROUTE: CREATE MERCHANT HANDLES UPDATES IF GST NUMBER ALREADY EXISTS. update is depricated
 export const update = async (
     id: string,
     newMerchantData: UpdateMerchantDto,
