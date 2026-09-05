@@ -2,18 +2,6 @@ import { body, param } from 'express-validator';
 
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
-// TODO: SETUP PAGINATION AFTER MVP
-// export const getAllMerchantsValidator = [
-//   param("page")
-//     .optional()
-//     .isInt({ min: 1 })
-//     .withMessage("Page must be a positive integer"),
-//   param("limit")
-//     .optional()
-//     .isInt({ min: 1, max: 100 })
-//     .withMessage("Limit must be between 1 and 100"),
-// ];
-
 export const createMerchantValidator = [
     body('businessName').notEmpty().withMessage('Business name is required'),
     body('category').notEmpty().withMessage('Category is required'),

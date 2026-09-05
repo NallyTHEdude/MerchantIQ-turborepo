@@ -81,7 +81,8 @@ export const create = async (
     return newMerchant;
 };
 
-// // TODO: Handle merchant updates after verification succeeds.
+// // FIXME: Handle merchant updates after verification succeeds. 
+// UPDATE: THIS IS NOT REQUIRED, CREATE MERCHANT HANDLES UPDATES IF GST NUMBER ALREADY EXISTS. DEPRICATED ROUTE I SAY
 // Currently, updates are staged and applied by the verification pipeline.
 export const update = async (
     id: string,
