@@ -6,9 +6,25 @@ You give it a merchant's basic details (business name, GST number, website, phon
 
 - Checks whether the GST number, phone number, and website look valid and real
 - Looks at the merchant's website itself to see if it's a genuine, operating business
-- Looks at the merchant's payment history to spot suspicious patterns
+- Scores the merchant's payment history for fraud risk using an ensemble ML model (XGBoost + SVM + Random Forest, combined via soft voting)
 - Reads the uploaded document and compares it against government compliance rules
 - Combines all of this into a final decision — **Approve** or **Reject** — along with a simple explanation of why
+
+## Quick start
+
+```bash
+git clone https://github.com/NallyTHEdude/MerchantIQ-monorepo.git
+cd MerchantIQ-monorepo
+
+npm install          # installs dependencies for every app in the monorepo
+npm run ml:setup     # one-time: sets up the Python environment for the ML service
+
+# fill in apps/api/.env and apps/web/.env first — see "Setup" below
+
+npm run dev          # starts the backend and frontend together via Turborepo
+```
+
+This gets the backend (`apps/api`) and frontend (`apps/web`) running together. The ML service (`apps/ml-service`) and the Inngest dev server still need to be started separately — see "Running the project" below for the full picture.
 
 ## What's inside
 
@@ -18,9 +34,9 @@ This is a monorepo (one repo, multiple apps that work together) managed with [Tu
 | --- | --- | --- | --- |
 | Backend | `apps/api` | The main server. Handles merchants, payments, document uploads, and runs the verification pipeline. | `4000` |
 | Frontend | `apps/web` | The dashboard shown in the screenshots — view merchants, see risk scores, inspect investigations. | `3000` |
-| ML service | `apps/ml-service` | A small Python service that scores payment behavior for fraud risk using a trained model. | `8000` |
+| ML service | `apps/ml-service` | A small Python service that scores payment behavior for fraud risk using a trained ensemble model (XGBoost + SVM + Random Forest, soft voting). | `8000` |
 
-The backend and frontend are the two apps you'll interact with directly. The ML service runs quietly in the background and is called by the backend.
+The backend and frontend are the two apps you'll interact with directly. The ML service runs quietly in the background and is called by the backend during verification.
 
 ## Architecture and Database Design
 
@@ -28,7 +44,7 @@ The backend and frontend are the two apps you'll interact with directly. The ML 
 
 ![Architecture Diagram](./apps/api/docs/architecture-design.svg)
 
-_End-to-end request flow: API routes → Inngest event triggers → the fan-out/fan-in pipeline described above → persisted verification and investigation records._
+_End-to-end request flow: API routes → Inngest event triggers → the fan-out/fan-in pipeline described above (including the ML ensemble fraud-scoring step) → persisted verification and investigation records._
 
 ### Database Design
 
@@ -101,8 +117,6 @@ erDiagram
 	}
 ```
 
-
-
 ## Requirements
 
 - Node.js (v24 or newer recommended)
@@ -145,6 +159,8 @@ erDiagram
    npm run ml:setup
    ```
 
+   This sets up the Python environment the ML service needs to run (installs dependencies for the XGBoost/SVM/Random Forest ensemble).
+
 5. Run the database migrations:
 
    ```bash
@@ -181,6 +197,8 @@ You can also start the backend and frontend together from the root using Turbore
 ```bash
 npm run dev
 ```
+
+Note: `npm run dev` only starts the backend and frontend. The ML service and the Inngest dev server still need to be started separately (Terminals 2 and 3 above) for verification to fully work end to end.
 
 ## Learn more
 
