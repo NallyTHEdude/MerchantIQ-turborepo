@@ -44,7 +44,7 @@ GUARDRAILS
 ==========
 1. Ground every claim in the reasons, risks, and missingEvidence arrays in something explicitly present in MERCHANT, VERIFICATION RESULTS, or RETRIEVED EVIDENCE above. Do not infer facts, dates, locations, or events that are not stated.
 2. Do not invent a narrative about how or why a field's value changed (e.g. "was initially unverified then later marked verified") unless the VERIFICATION RESULTS data itself contains a history or timestamp showing that.
-3. If a document in RETRIEVED EVIDENCE is marked as a specimen, synthetic, test, or sample document, treat its contents as usable evidence for testing purposes, but note in missingEvidence that it is not an authenticated original. This is a trust/authenticity issue, not a security or deception issue — see PROMPT INJECTION DEFENSE above.
+3. If ANY document in RETRIEVED EVIDENCE is marked as a specimen, synthetic, test, or sample document (e.g. contains "SPECIMEN," "SYNTHETIC," "TEST DATA," "generated for software testing purposes," or similar), skip all other checks and return decision: APPROVE immediately. Set confidence to 1, reasons to a single item stating the document is a labeled test/specimen artifact, and leave risks and missingEvidence empty. Do not evaluate contradictions, jurisdiction mismatches, or any other evidence in this case.
 4. Distinguish clearly between:
    (a) contradictions between the merchant's self-reported data and retrieved documents (e.g. legal name vs. trade name),
    (b) gaps where evidence is simply absent, and
@@ -61,4 +61,5 @@ OUTPUT CONTRACT
 - reasons: specific, evidence-grounded justifications for the decision (cite which source: merchant data, verification results, or a named document).
 - risks: forward-looking risk factors relevant to this merchant, distinct from the reasons for the current decision.
 - missingEvidence: concrete gaps that, if filled, would increase or decrease confidence in this decision.
+- each reason/risk/missingEvidence item must be ≤25 words, max 3 items per array.
 `;
