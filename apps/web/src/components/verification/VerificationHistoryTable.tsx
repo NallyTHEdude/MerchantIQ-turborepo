@@ -1,5 +1,6 @@
-import React from 'react';
-import { Check, X, Shield, FileSearch } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Check, X, Shield, FileSearch, ArrowDown, ArrowUp } from 'lucide-react';
+
 import { Verification } from '@/types';
 import { RiskBadge, StatusBadge } from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
@@ -16,11 +17,13 @@ interface VerificationHistoryTableProps {
      * Example:
      * {
      *   "58c17c64-d8e5-4200-9bfc-d292f9e65fed": "REJECT",
-     *   "123...": "ACCEPT"
+     *   "123...": "APPROVE"
      * }
      */
     investigationStatuses?: Record<string, 'APPROVE' | 'REJECT'>;
 }
+
+type SortOrder = 'desc' | 'asc';
 
 export function VerificationHistoryTable({
     verifications,
@@ -28,11 +31,29 @@ export function VerificationHistoryTable({
     onInvestigate,
     investigationStatuses = {},
 }: VerificationHistoryTableProps) {
-    // Sort newest verification first
-    const sorted = [...verifications].sort(
-        (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    // ============================================================
+    // DATE SORTING
+    // ============================================================
+
+    // Default: newest → oldest
+    const [dateSortOrder, setDateSortOrder] = useState<SortOrder>('desc');
+
+    const sorted = useMemo(() => {
+        return [...verifications].sort((a, b) => {
+            const timeA = new Date(a.createdAt).getTime();
+            const timeB = new Date(b.createdAt).getTime();
+
+            return dateSortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        });
+    }, [verifications, dateSortOrder]);
+
+    const toggleDateSort = () => {
+        setDateSortOrder((current) => (current === 'desc' ? 'asc' : 'desc'));
+    };
+
+    // ============================================================
+    // INVESTIGATION STATUS
+    // ============================================================
 
     const renderInvestigationStatus = (verificationId: string) => {
         const status = investigationStatuses[verificationId];
@@ -61,6 +82,10 @@ export function VerificationHistoryTable({
             </span>
         );
     };
+
+    // ============================================================
+    // RENDER
+    // ============================================================
 
     return (
         <div className="bg-white rounded-xl border border-[#E4E4E7] shadow-xs overflow-hidden">
@@ -121,13 +146,32 @@ export function VerificationHistoryTable({
 
                         <thead>
                             <tr className="bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#71717A] text-[10px] font-bold uppercase tracking-widest">
+                                {/* DATE & TIME */}
                                 <th
                                     scope="col"
                                     className="py-3 px-6 whitespace-nowrap"
                                 >
-                                    Date
+                                    <button
+                                        type="button"
+                                        onClick={toggleDateSort}
+                                        className="inline-flex items-center gap-1.5 group hover:text-[#18181B] transition-colors"
+                                        title={
+                                            dateSortOrder === 'desc'
+                                                ? 'Currently newest first. Click to show oldest first.'
+                                                : 'Currently oldest first. Click to show newest first.'
+                                        }
+                                    >
+                                        <span>Date &amp; Time</span>
+
+                                        {dateSortOrder === 'desc' ? (
+                                            <ArrowDown className="w-3 h-3 text-[#18181B] group-hover:scale-110 transition-transform" />
+                                        ) : (
+                                            <ArrowUp className="w-3 h-3 text-[#18181B] group-hover:scale-110 transition-transform" />
+                                        )}
+                                    </button>
                                 </th>
 
+                                {/* STATUS */}
                                 <th
                                     scope="col"
                                     className="py-3 px-4 whitespace-nowrap"
@@ -135,6 +179,7 @@ export function VerificationHistoryTable({
                                     Status
                                 </th>
 
+                                {/* TRUST SCORE */}
                                 <th
                                     scope="col"
                                     className="py-3 px-4 whitespace-nowrap"
@@ -142,6 +187,7 @@ export function VerificationHistoryTable({
                                     Trust Score
                                 </th>
 
+                                {/* RISK LEVEL */}
                                 <th
                                     scope="col"
                                     className="py-3 px-4 whitespace-nowrap"
@@ -149,6 +195,7 @@ export function VerificationHistoryTable({
                                     Risk Level
                                 </th>
 
+                                {/* INVESTIGATION STATUS */}
                                 <th
                                     scope="col"
                                     className="py-3 px-4 text-center whitespace-nowrap"
@@ -156,6 +203,7 @@ export function VerificationHistoryTable({
                                     Investigation Status
                                 </th>
 
+                                {/* GST */}
                                 <th
                                     scope="col"
                                     className="py-3 px-3 text-center"
@@ -163,6 +211,7 @@ export function VerificationHistoryTable({
                                     GST
                                 </th>
 
+                                {/* WEBSITE */}
                                 <th
                                     scope="col"
                                     className="py-3 px-3 text-center"
@@ -170,6 +219,7 @@ export function VerificationHistoryTable({
                                     Website
                                 </th>
 
+                                {/* PHONE */}
                                 <th
                                     scope="col"
                                     className="py-3 px-3 text-center"
@@ -177,6 +227,7 @@ export function VerificationHistoryTable({
                                     Phone
                                 </th>
 
+                                {/* INVESTIGATION */}
                                 <th
                                     scope="col"
                                     className="py-3 px-6 text-right whitespace-nowrap"
@@ -192,27 +243,34 @@ export function VerificationHistoryTable({
 
                         <tbody className="divide-y divide-[#F4F4F5] text-sm">
                             {sorted.map((item) => {
-                                /*
-                                 * The investigation API uses:
-                                 *
-                                 * verificationId
-                                 * action: "ACCEPT" | "REJECT"
-                                 *
-                                 * The verification item's `id` is the
-                                 * verification ID used by onInvestigate().
-                                 */
-
                                 return (
                                     <tr
                                         key={item.id}
                                         className="hover:bg-[#F9FAFB] transition-colors"
                                     >
                                         {/* ================================= */}
-                                        {/* DATE */}
+                                        {/* DATE & TIME */}
                                         {/* ================================= */}
 
                                         <td className="py-3.5 px-6 text-xs text-[#71717A] font-mono whitespace-nowrap">
-                                            {formatDate(item.createdAt)}
+                                            <div className="flex flex-col">
+                                                <span className="text-[#18181B]">
+                                                    {formatDate(item.createdAt)}
+                                                </span>
+
+                                                <span className="text-[10px] text-[#A1A1AA] mt-0.5">
+                                                    {new Date(
+                                                        item.createdAt,
+                                                    ).toLocaleTimeString(
+                                                        undefined,
+                                                        {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            second: '2-digit',
+                                                        },
+                                                    )}
+                                                </span>
+                                            </div>
                                         </td>
 
                                         {/* ================================= */}
