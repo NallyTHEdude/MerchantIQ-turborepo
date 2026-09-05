@@ -1,158 +1,188 @@
-# Turborepo starter
+# MerchantIQ
 
-This Turborepo starter is maintained by the Turborepo core team.
+MerchantIQ helps a platform figure out whether a merchant signing up is trustworthy or risky.
 
-## Using this example
+You give it a merchant's basic details (business name, GST number, website, phone number) and a document (like a business registration PDF). It then automatically:
 
-Run the following command:
+- Checks whether the GST number, phone number, and website look valid and real
+- Looks at the merchant's website itself to see if it's a genuine, operating business
+- Looks at the merchant's payment history to spot suspicious patterns
+- Reads the uploaded document and compares it against government compliance rules
+- Combines all of this into a final decision — **Approve** or **Reject** — along with a simple explanation of why
 
-```sh
-npx create-turbo@latest
+## What's inside
+
+This is a monorepo (one repo, multiple apps that work together) managed with [Turborepo](https://turborepo.dev).
+
+| App | Folder | What it does | Default port |
+| --- | --- | --- | --- |
+| Backend | `apps/api` | The main server. Handles merchants, payments, document uploads, and runs the verification pipeline. | `4000` |
+| Frontend | `apps/web` | The dashboard shown in the screenshots — view merchants, see risk scores, inspect investigations. | `3000` |
+| ML service | `apps/ml-service` | A small Python service that scores payment behavior for fraud risk using a trained model. | `8000` |
+
+The backend and frontend are the two apps you'll interact with directly. The ML service runs quietly in the background and is called by the backend.
+
+## Architecture and Database Design
+
+### Architecture Diagram
+
+![Architecture Diagram](./apps/api/docs/architecture-design.svg)
+
+_End-to-end request flow: API routes → Inngest event triggers → the fan-out/fan-in pipeline described above → persisted verification and investigation records._
+
+### Database Design
+
+```mermaid
+erDiagram
+	Merchant ||--o{ Verification : references
+	Merchant ||--o{ Payment : references
+	Verification ||--|| Investigation : references
+	RAG_DOCUMENT ||--o{ RAG_CHUNKS : references
+	Merchant ||--|| RAG_DOCUMENT : references
+
+	Merchant {
+		UUID id
+		VARCHAR(255) businessName
+		CATEGORIES category
+		VARCHAR(15) gstNumber
+		VARCHAR(255) websiteURL
+		VARCHAR(15) phoneNumber
+		TIMESTAMPTZ createdAt
+	}
+
+	Verification {
+		UUID id
+		UUID merchantId
+		VERIFICATION_STATUS verificationStatus
+		BOOLEAN isGstNumberVerified
+		BOOLEAN isWebsiteVerified
+		BOOLEAN isPhoneNumberVerified
+		INTEGER trustscore
+		RISK_LEVEL riskLevel
+		TIMESTAMPTZ createdAt
+	}
+
+	Payment {
+		UUID id
+		UUID merchantId
+		DECIMAL(12) amount
+		PAYMENT_STATUS status
+		PAYMENT_METHOD paymentMethod
+		TIMESTAMPTZ createdAt
+		BOOLEAN isInternational
+	}
+
+	Investigation {
+		UUID id
+		UUID verificationId
+		VARCHAR(255) action
+		TEXT reasoning
+		BOOLEAN isOverridden
+		VARCHAR(255) overriddenBy
+		TIMESTAMPTZ createdAt
+	}
+
+	RAG_DOCUMENT {
+		UUID id
+		UUID merchantId
+		VARCHAR(255) source
+		DOCUMENT_TYPE documentType
+		JSONB metadata
+		TIMESTAMPTZ createdAt
+	}
+
+	RAG_CHUNKS {
+		UUID id
+		UUID documentId
+		TEXT content
+		INTEGER chunkIndex
+		VECTOR(1024) embedding
+		TIMESTAMPTZ createdAt
+	}
 ```
 
-## What's inside?
 
-This Turborepo includes the following packages/apps:
 
-### Apps and Packages
+## Requirements
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- Node.js (v24 or newer recommended)
+- Python (for the ML service)
+- PostgreSQL with the `pgvector` extension enabled
+- Accounts/API keys for: Cloudinary, Inngest, Firecrawl, Mistral
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Setup
 
-### Utilities
+1. Clone the repo and install everything from the root:
 
-This Turborepo has some additional tools already setup for you:
+   ```bash
+   git clone https://github.com/NallyTHEdude/MerchantIQ-monorepo.git
+   cd MerchantIQ-monorepo
+   npm install
+   ```
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+2. Set up the backend environment file:
 
-### Build
+   ```bash
+   cd apps/api
+   cp .env.example .env
+   ```
 
-To build all apps and packages, run the following command:
+   Fill in your database URL, `PORT` (uses default `4000`), and your Cloudinary/Inngest/Firecrawl/Mistral keys. Full details are in [`apps/api/README.md`](apps/api/README.md).
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+3. Set up the frontend environment file:
 
-```sh
-cd my-turborepo
-turbo build
+   ```bash
+   cd ../web
+   cp .env.example .env
+   ```
+
+   Set `NEXT_PUBLIC_BACKEND_URL=http://localhost:4000` so the frontend knows where the backend is running (Backend uses port `4000` by default).
+
+4. Set up the ML service (one-time):
+
+   ```bash
+   cd ../..
+   npm run ml:setup
+   ```
+
+5. Run the database migrations:
+
+   ```bash
+   cd apps/api
+   npm run db:migrate
+   ```
+
+## Running the project
+
+Each app runs separately. Open a few terminals from the repo root:
+
+```bash
+# Terminal 1 — backend (http://localhost:4000)
+cd apps/api
+npm run dev:server
+
+# Terminal 2 — background job runner used by the backend
+cd apps/api
+npm run dev:inngest
+
+# Terminal 3 — ML service (http://localhost:8000)
+cd apps/ml-service
+npm run dev
+
+# Terminal 4 — frontend (http://localhost:3000)
+cd apps/web
+npm run dev
 ```
 
-Without global `turbo`, use your package manager:
+Once everything is running, open **http://localhost:3000** to use the dashboard.
 
-```sh
-cd my-turborepo
-npx turbo build
-npm exec turbo build
-npm exec turbo build
+You can also start the backend and frontend together from the root using Turborepo:
+
+```bash
+npm run dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Learn more
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- Backend details (routes, database design, how the verification pipeline works): [`apps/api/README.md`](apps/api/README.md)
+- API documentation (once the backend is running): `http://localhost:4000/api-docs`
