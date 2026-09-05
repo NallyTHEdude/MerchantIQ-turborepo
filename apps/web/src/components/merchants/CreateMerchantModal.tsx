@@ -9,12 +9,13 @@ import {
     Sparkles,
     FileCheck,
 } from 'lucide-react';
+
 import {
     createMerchant,
     createPayments,
     uploadMerchantDocument,
-    uploadGovernmentDocument,
 } from '@/lib/api';
+
 import { CreatePaymentDto } from '@/types';
 
 interface CreateMerchantModalProps {
@@ -26,7 +27,7 @@ interface CreateMerchantModalProps {
 type StepStatus = 'pending' | 'active' | 'success' | 'failed';
 
 interface SequenceStep {
-    id: 'merchant' | 'payments' | 'merchantDoc' | 'govtDoc' | 'finishing';
+    id: 'merchant' | 'payments' | 'merchantDoc' | 'finishing';
     label: string;
     status: StepStatus;
     error?: string;
@@ -75,46 +76,61 @@ export function CreateMerchantModal({
     const [paymentData, setPaymentData] = useState<CreatePaymentDto[] | null>(
         null,
     );
+
     const [paymentFileName, setPaymentFileName] = useState<string>('');
+
     const [paymentJsonError, setPaymentJsonError] = useState<string | null>(
         null,
     );
 
-    // Document files
+    // Merchant document
     const [merchantDocFile, setMerchantDocFile] = useState<File | null>(null);
-    const [govtDocFile, setGovtDocFile] = useState<File | null>(null);
+
     const [merchantDocError, setMerchantDocError] = useState<string | null>(
         null,
     );
-    const [govtDocError, setGovtDocError] = useState<string | null>(null);
 
     // Sequence execution state
     const [isRunningSequence, setIsRunningSequence] = useState(false);
+
     const [generalError, setGeneralError] = useState<string | null>(null);
+
     const [steps, setSteps] = useState<SequenceStep[]>([
-        { id: 'merchant', label: 'Creating merchant', status: 'pending' },
-        { id: 'payments', label: 'Uploading payment data', status: 'pending' },
+        {
+            id: 'merchant',
+            label: 'Creating merchant',
+            status: 'pending',
+        },
+        {
+            id: 'payments',
+            label: 'Uploading payment data',
+            status: 'pending',
+        },
         {
             id: 'merchantDoc',
             label: 'Uploading merchant document',
             status: 'pending',
         },
         {
-            id: 'govtDoc',
-            label: 'Uploading government document',
+            id: 'finishing',
+            label: 'Finishing',
             status: 'pending',
         },
-        { id: 'finishing', label: 'Finishing', status: 'pending' },
     ]);
 
     if (!isOpen) return null;
 
+    // ============================================================
     // Handle Payment JSON file selection & validation
+    // ============================================================
+
     const handlePaymentJsonUpload = (
         e: React.ChangeEvent<HTMLInputElement>,
     ) => {
         setPaymentJsonError(null);
+
         const file = e.target.files?.[0];
+
         if (!file) return;
 
         if (!file.name.toLowerCase().endsWith('.json')) {
@@ -125,6 +141,7 @@ export function CreateMerchantModal({
         }
 
         const reader = new FileReader();
+
         reader.onload = (event) => {
             try {
                 const text = event.target?.result as string;
@@ -146,8 +163,10 @@ export function CreateMerchantModal({
 
                 // Validate objects
                 const validated: CreatePaymentDto[] = [];
+
                 for (let i = 0; i < parsed.length; i++) {
                     const item = parsed[i];
+
                     if (
                         typeof item !== 'object' ||
                         item === null ||
@@ -166,6 +185,7 @@ export function CreateMerchantModal({
                         typeof item.amount === 'string'
                             ? parseFloat(item.amount)
                             : Number(item.amount);
+
                     if (isNaN(amountNum) || amountNum < 0) {
                         setPaymentJsonError(
                             `Item #${i + 1} has an invalid payment amount.`,
@@ -187,11 +207,15 @@ export function CreateMerchantModal({
                 setPaymentJsonError(null);
             } catch (err: unknown) {
                 setPaymentJsonError(
-                    `Failed to parse JSON: ${err instanceof Error ? err.message : 'Syntax error'}`,
+                    `Failed to parse JSON: ${
+                        err instanceof Error ? err.message : 'Syntax error'
+                    }`,
                 );
+
                 setPaymentData(null);
             }
         };
+
         reader.readAsText(file);
     };
 
@@ -201,12 +225,17 @@ export function CreateMerchantModal({
         setPaymentJsonError(null);
     };
 
-    // Document validation
+    // ============================================================
+    // Merchant document validation
+    // ============================================================
+
     const handleMerchantDocChange = (
         e: React.ChangeEvent<HTMLInputElement>,
     ) => {
         setMerchantDocError(null);
+
         const file = e.target.files?.[0];
+
         if (!file) return;
 
         if (
@@ -217,38 +246,23 @@ export function CreateMerchantModal({
             setMerchantDocFile(null);
             return;
         }
+
         if (file.size > 10 * 1024 * 1024) {
             setMerchantDocError('File size exceeds the 10 MB maximum limit.');
             setMerchantDocFile(null);
             return;
         }
+
         setMerchantDocFile(file);
     };
 
-    const handleGovtDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setGovtDocError(null);
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (
-            file.type !== 'application/pdf' &&
-            !file.name.toLowerCase().endsWith('.pdf')
-        ) {
-            setGovtDocError('Only PDF files are allowed.');
-            setGovtDocFile(null);
-            return;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            setGovtDocError('File size exceeds the 10 MB maximum limit.');
-            setGovtDocFile(null);
-            return;
-        }
-        setGovtDocFile(file);
-    };
-
+    // ============================================================
     // Sequential Execution
+    // ============================================================
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         setGeneralError(null);
 
         // Initial validations
@@ -256,32 +270,31 @@ export function CreateMerchantModal({
             setGeneralError('Please enter a valid business name.');
             return;
         }
+
         if (!gstNumber.trim()) {
             setGeneralError('Please enter a valid GST Number.');
             return;
         }
+
         if (!websiteUrl.trim()) {
             setGeneralError('Please enter a website URL.');
             return;
         }
+
         if (!phoneNumber.trim()) {
             setGeneralError('Please enter a phone number.');
             return;
         }
+
         if (!paymentData || paymentData.length === 0) {
             setPaymentJsonError(
                 'Please upload a valid payments JSON file or load the sample dataset.',
             );
             return;
         }
+
         if (!merchantDocFile) {
             setMerchantDocError('Please select a merchant PDF document.');
-            return;
-        }
-        if (!govtDocFile) {
-            setGovtDocError(
-                'Please select a government compliance PDF document.',
-            );
             return;
         }
 
@@ -295,7 +308,11 @@ export function CreateMerchantModal({
             setSteps((prev) =>
                 prev.map((step) =>
                     step.id === id
-                        ? { ...step, status, error: errorMsg }
+                        ? {
+                              ...step,
+                              status,
+                              error: errorMsg,
+                          }
                         : step,
                 ),
             );
@@ -303,7 +320,11 @@ export function CreateMerchantModal({
 
         // Reset steps
         setSteps([
-            { id: 'merchant', label: 'Creating merchant', status: 'pending' },
+            {
+                id: 'merchant',
+                label: 'Creating merchant',
+                status: 'pending',
+            },
             {
                 id: 'payments',
                 label: 'Uploading payment data',
@@ -315,18 +336,21 @@ export function CreateMerchantModal({
                 status: 'pending',
             },
             {
-                id: 'govtDoc',
-                label: 'Uploading government document',
+                id: 'finishing',
+                label: 'Finishing',
                 status: 'pending',
             },
-            { id: 'finishing', label: 'Finishing', status: 'pending' },
         ]);
 
         let createdMerchantId = '';
 
         try {
+            // ====================================================
             // Step 1: POST /api/merchant
+            // ====================================================
+
             updateStep('merchant', 'active');
+
             const merchantRes = await createMerchant({
                 businessName: businessName.trim(),
                 category: category.trim(),
@@ -336,31 +360,43 @@ export function CreateMerchantModal({
             });
 
             createdMerchantId = merchantRes.merchantId;
+
             if (!createdMerchantId) {
                 throw new Error(
                     'Merchant was created but backend returned no merchant ID.',
                 );
             }
+
             updateStep('merchant', 'success');
 
-            // Step 2 & 3: POST /api/payment/:merchantId
+            // ====================================================
+            // Step 2: POST /api/payment/:merchantId
+            // ====================================================
+
             updateStep('payments', 'active');
+
             await createPayments(createdMerchantId, paymentData);
+
             updateStep('payments', 'success');
 
-            // Step 4: POST /api/document/:merchantId
+            // ====================================================
+            // Step 3: POST /api/document/:merchantId
+            // ====================================================
+
             updateStep('merchantDoc', 'active');
+
             await uploadMerchantDocument(createdMerchantId, merchantDocFile);
+
             updateStep('merchantDoc', 'success');
 
-            // Step 5: POST /api/document/govt
-            updateStep('govtDoc', 'active');
-            await uploadGovernmentDocument(govtDocFile);
-            updateStep('govtDoc', 'success');
+            // ====================================================
+            // Step 4: Finishing
+            // ====================================================
 
-            // Step 6: Finishing
             updateStep('finishing', 'active');
+
             await new Promise((resolve) => setTimeout(resolve, 600));
+
             updateStep('finishing', 'success');
 
             // Done!
@@ -370,13 +406,18 @@ export function CreateMerchantModal({
         } catch (err: unknown) {
             const errMsg =
                 err instanceof Error ? err.message : 'Operation failed';
+
             setGeneralError(`Unable to complete merchant setup: ${errMsg}`);
 
             // Mark whichever active step as failed
             setSteps((prev) =>
                 prev.map((step) =>
                     step.status === 'active'
-                        ? { ...step, status: 'failed', error: errMsg }
+                        ? {
+                              ...step,
+                              status: 'failed',
+                              error: errMsg,
+                          }
                         : step,
                 ),
             );
@@ -389,8 +430,9 @@ export function CreateMerchantModal({
         <div
             className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
             onClick={(e) => {
-                if (e.target === e.currentTarget && !isRunningSequence)
+                if (e.target === e.currentTarget && !isRunningSequence) {
                     onClose();
+                }
             }}
         >
             <div className="bg-white rounded-xl border border-[#E4E4E7] shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
@@ -400,11 +442,13 @@ export function CreateMerchantModal({
                         <h2 className="text-base font-semibold text-[#18181B] tracking-tight">
                             Create Merchant
                         </h2>
+
                         <p className="text-xs text-[#71717A] mt-0.5">
                             Set up merchant profile, initial payment history,
-                            and compliance documents
+                            and merchant documents
                         </p>
                     </div>
+
                     {!isRunningSequence && (
                         <button
                             type="button"
@@ -417,33 +461,38 @@ export function CreateMerchantModal({
                     )}
                 </div>
 
-                {/* Progress Display (if sequence started or active) */}
+                {/* Progress Display */}
                 {steps.some((s) => s.status !== 'pending') && (
                     <div className="px-6 py-4 bg-[#18181B] text-white border-b border-[#27272A]">
                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] mb-2 font-mono">
                             Setup Pipeline
                         </h4>
+
                         <div className="space-y-2">
                             {steps.map((step) => {
                                 let icon = (
                                     <span className="text-[#71717A]">○</span>
                                 );
+
                                 let textClass = 'text-[#A1A1AA]';
 
                                 if (step.status === 'active') {
                                     icon = (
                                         <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
                                     );
+
                                     textClass = 'text-white font-semibold';
                                 } else if (step.status === 'success') {
                                     icon = (
                                         <Check className="w-3.5 h-3.5 text-emerald-400" />
                                     );
+
                                     textClass = 'text-emerald-400';
                                 } else if (step.status === 'failed') {
                                     icon = (
                                         <X className="w-3.5 h-3.5 text-red-400" />
                                     );
+
                                     textClass = 'text-red-400 font-semibold';
                                 }
 
@@ -456,15 +505,18 @@ export function CreateMerchantModal({
                                             <span className="w-4 h-4 flex items-center justify-center">
                                                 {icon}
                                             </span>
+
                                             <span className={textClass}>
                                                 {step.label}
                                             </span>
                                         </div>
+
                                         {step.status === 'success' && (
                                             <span className="text-emerald-400 font-mono text-[11px]">
                                                 ✓
                                             </span>
                                         )}
+
                                         {step.status === 'failed' && (
                                             <span className="text-red-400 font-mono text-[11px]">
                                                 ✕
@@ -474,6 +526,7 @@ export function CreateMerchantModal({
                                 );
                             })}
                         </div>
+
                         {generalError && (
                             <div className="mt-3 p-2.5 bg-red-950/80 border border-red-800 rounded text-red-200 text-xs">
                                 {generalError}
@@ -487,7 +540,10 @@ export function CreateMerchantModal({
                     onSubmit={handleSubmit}
                     className="overflow-y-auto p-6 space-y-6"
                 >
+                    {/* ================================================= */}
                     {/* Section 1: Merchant Information */}
+                    {/* ================================================= */}
+
                     <div className="space-y-4">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
                             <span className="w-5 h-5 rounded-md bg-[#F4F4F5] text-[#18181B] text-xs font-mono font-bold inline-flex items-center justify-center border border-[#E4E4E7]">
@@ -501,6 +557,7 @@ export function CreateMerchantModal({
                                 <label className="block text-xs font-medium text-[#71717A] mb-1">
                                     Business Name *
                                 </label>
+
                                 <input
                                     type="text"
                                     required
@@ -518,6 +575,7 @@ export function CreateMerchantModal({
                                 <label className="block text-xs font-medium text-[#71717A] mb-1">
                                     Category *
                                 </label>
+
                                 <select
                                     disabled={isRunningSequence}
                                     value={category}
@@ -549,6 +607,7 @@ export function CreateMerchantModal({
                                 <label className="block text-xs font-medium text-[#71717A] mb-1">
                                     GST Number *
                                 </label>
+
                                 <input
                                     type="text"
                                     required
@@ -568,6 +627,7 @@ export function CreateMerchantModal({
                                 <label className="block text-xs font-medium text-[#71717A] mb-1">
                                     Website URL *
                                 </label>
+
                                 <input
                                     type="url"
                                     required
@@ -585,6 +645,7 @@ export function CreateMerchantModal({
                                 <label className="block text-xs font-medium text-[#71717A] mb-1">
                                     Phone Number *
                                 </label>
+
                                 <input
                                     type="tel"
                                     required
@@ -602,7 +663,10 @@ export function CreateMerchantModal({
 
                     <hr className="border-[#E4E4E7]" />
 
+                    {/* ================================================= */}
                     {/* Section 2: Payment JSON */}
+                    {/* ================================================= */}
+
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h3 className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
@@ -611,6 +675,7 @@ export function CreateMerchantModal({
                                 </span>
                                 Payment JSON (Initial Data)
                             </h3>
+
                             <button
                                 type="button"
                                 onClick={handleUseSamplePayments}
@@ -627,11 +692,13 @@ export function CreateMerchantModal({
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-[#71717A]" />
+
                                         <span className="text-sm font-medium text-[#18181B]">
                                             {paymentFileName ||
                                                 'Upload Payments JSON (.json)'}
                                         </span>
                                     </div>
+
                                     <p className="text-xs text-[#71717A] mt-0.5">
                                         Array of payment objects with amount,
                                         status, paymentMethod.
@@ -654,6 +721,7 @@ export function CreateMerchantModal({
                             {paymentData && (
                                 <div className="mt-3 p-2.5 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 flex items-center gap-2">
                                     <FileCheck className="w-4 h-4 text-green-600 shrink-0" />
+
                                     <span>
                                         Loaded{' '}
                                         <strong>{paymentData.length}</strong>{' '}
@@ -665,6 +733,7 @@ export function CreateMerchantModal({
                             {paymentJsonError && (
                                 <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
                                     <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+
                                     <span>{paymentJsonError}</span>
                                 </div>
                             )}
@@ -673,7 +742,10 @@ export function CreateMerchantModal({
 
                     <hr className="border-[#E4E4E7]" />
 
+                    {/* ================================================= */}
                     {/* Section 3: Merchant Document */}
+                    {/* ================================================= */}
+
                     <div className="space-y-3">
                         <h3 className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
                             <span className="w-5 h-5 rounded-md bg-[#F4F4F5] text-[#18181B] text-xs font-mono font-bold inline-flex items-center justify-center border border-[#E4E4E7]">
@@ -687,12 +759,14 @@ export function CreateMerchantModal({
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-[#71717A]" />
+
                                         <span className="text-sm font-medium text-[#18181B]">
                                             {merchantDocFile
                                                 ? merchantDocFile.name
                                                 : 'Upload Merchant Document (PDF)'}
                                         </span>
                                     </div>
+
                                     <p className="text-xs text-[#71717A] mt-0.5">
                                         Business incorporation or registration
                                         proof. PDF only, under 10 MB.
@@ -715,57 +789,8 @@ export function CreateMerchantModal({
                             {merchantDocError && (
                                 <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
                                     <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+
                                     <span>{merchantDocError}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <hr className="border-[#E4E4E7]" />
-
-                    {/* Section 4: Government Document */}
-                    <div className="space-y-3">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#71717A] flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-md bg-[#F4F4F5] text-[#18181B] text-xs font-mono font-bold inline-flex items-center justify-center border border-[#E4E4E7]">
-                                4
-                            </span>
-                            Government Document (PDF)
-                        </h3>
-
-                        <div className="border border-dashed border-[#E4E4E7] rounded-xl p-4 bg-[#FAFAFA] hover:bg-white transition-colors">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-[#71717A]" />
-                                        <span className="text-sm font-medium text-[#18181B]">
-                                            {govtDocFile
-                                                ? govtDocFile.name
-                                                : 'Upload Government Document (PDF)'}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-[#71717A] mt-0.5">
-                                        Government tax clearance or compliance
-                                        certificate. PDF only, under 10 MB.
-                                    </p>
-                                </div>
-
-                                <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-[#18181B] bg-white border border-[#E4E4E7] rounded-md hover:bg-[#F4F4F5] shadow-2xs transition-colors shrink-0">
-                                    <Upload className="w-3.5 h-3.5 text-[#71717A]" />
-                                    Select PDF
-                                    <input
-                                        type="file"
-                                        accept="application/pdf,.pdf"
-                                        onChange={handleGovtDocChange}
-                                        disabled={isRunningSequence}
-                                        className="hidden"
-                                    />
-                                </label>
-                            </div>
-
-                            {govtDocError && (
-                                <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                                    <span>{govtDocError}</span>
                                 </div>
                             )}
                         </div>
@@ -781,6 +806,7 @@ export function CreateMerchantModal({
                         >
                             Cancel
                         </button>
+
                         <button
                             type="submit"
                             id="btn-submit-create-merchant"
