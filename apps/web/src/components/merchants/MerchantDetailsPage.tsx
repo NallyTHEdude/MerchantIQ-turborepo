@@ -27,7 +27,6 @@ import { PaymentSummaryCards } from '@/components/payments/PaymentSummaryCards';
 import { PaymentMethodChart } from '@/components/payments/PaymentMethodChart';
 import { PaymentHistoryTable } from '@/components/payments/PaymentHistoryTable';
 
-import { DocumentSection } from '@/components/documents/DocumentSection';
 import { DeleteMerchantModal } from '@/components/merchants/DeleteMerchantModal';
 
 import { formatDate } from '@/lib/utils';
@@ -129,11 +128,8 @@ export function MerchantDetailsPage({
     // ============================================================
     // Load Investigation Statuses
     //
-    // Called after verification history has loaded because we need
-    // the verification IDs to query the investigation API.
-    //
-    // Promise.allSettled() means one missing investigation does NOT
-    // cause all the other investigation requests to fail.
+    // Fetches the investigation result for every verification. Missing
+    // investigations are expected while the backend is still processing.
     // ============================================================
 
     const loadInvestigationStatuses = useCallback(
@@ -149,29 +145,14 @@ export function MerchantDetailsPage({
             try {
                 const results = await Promise.allSettled(
                     verificationList.map(async (verification) => {
-                        /**
-                         * getInvestigation() already returns an Investigation
-                         * object, so there is NO response.message / response.data
-                         * wrapper here.
-                         */
                         const investigation = await getInvestigation(
                             verification.id,
-                        );
-
-                        console.log(
-                            'Investigation response:',
-                            verification.id,
-                            investigation,
                         );
 
                         const action = investigation?.action
                             ?.trim()
                             .toUpperCase();
 
-                        /**
-                         * Narrow the generic string to:
-                         * 'APPROVE' | 'REJECT'
-                         */
                         if (!isInvestigationAction(action)) {
                             return null;
                         }
@@ -186,22 +167,12 @@ export function MerchantDetailsPage({
                 const statuses: Record<string, InvestigationAction> = {};
 
                 results.forEach((result) => {
-                    if (result.status !== 'fulfilled') {
-                        /**
-                         * No investigation for this verification
-                         * is perfectly valid.
-                         */
-                        return;
-                    }
-
-                    if (!result.value) {
+                    if (result.status !== 'fulfilled' || !result.value) {
                         return;
                     }
 
                     statuses[result.value.verificationId] = result.value.action;
                 });
-
-                console.log('FINAL INVESTIGATION STATUSES:', statuses);
 
                 setInvestigationStatuses(statuses);
             } catch (error) {
@@ -216,35 +187,23 @@ export function MerchantDetailsPage({
     // ============================================================
     // Load Merchant Details
     //
-    // Merchant + verification + payments are started concurrently.
-    //
-    // Investigations start after verification history returns,
-    // because verification IDs are required.
+    // Merchant and payment data are loaded once. Verification history
+    // is polled every 5 seconds because verification is asynchronous.
+    // Once a verification exists, investigation status is also polled
+    // every 5 seconds.
     // ============================================================
 
     const loadMerchantDetails = useCallback(async () => {
         setError(null);
 
         setIsLoadingMerchant(true);
-        setIsLoadingVerifications(true);
         setIsLoadingPayments(true);
 
         setInvestigationStatuses({});
         setIsLoadingInvestigationStatuses(false);
 
-        // ========================================================
-        // START ALL INDEPENDENT REQUESTS CONCURRENTLY
-        // ========================================================
-
         const merchantPromise = getLatestMerchantVerifications();
-
-        const verificationPromise = getVerificationHistory(merchantId);
-
         const paymentPromise = getPaymentHistory(merchantId);
-
-        // ========================================================
-        // MERCHANT
-        // ========================================================
 
         try {
             const allMerchants = await merchantPromise;
@@ -258,7 +217,6 @@ export function MerchantDetailsPage({
             if (matched?.merchant) {
                 setMerchant(matched.merchant);
             } else {
-                // Fallback merchant object
                 setMerchant({
                     id: merchantId,
                     businessName: 'Merchant Profile',
@@ -278,34 +236,8 @@ export function MerchantDetailsPage({
             setIsLoadingMerchant(false);
         }
 
-        // ========================================================
-        // VERIFICATION HISTORY
-        // ========================================================
-
-        try {
-            const verifData = await verificationPromise;
-
-            setVerifications(verifData);
-
-            // Start investigation lookups in the background.
-            //
-            // We intentionally don't await this here because
-            // investigation status should not block the rest
-            // of the page from rendering.
-            void loadInvestigationStatuses(verifData);
-        } catch (err: unknown) {
-            console.warn('Failed to load verification history:', err);
-        } finally {
-            setIsLoadingVerifications(false);
-        }
-
-        // ========================================================
-        // PAYMENT HISTORY
-        // ========================================================
-
         try {
             const payData = await paymentPromise;
-
             setPayments(payData);
         } catch (err: unknown) {
             console.warn('Failed to load payment history:', err);
@@ -315,12 +247,87 @@ export function MerchantDetailsPage({
     }, [merchantId, loadInvestigationStatuses]);
 
     // ============================================================
-    // Initial Load
+    // Initial Load + Verification / Investigation Polling
     // ============================================================
 
     useEffect(() => {
-        loadMerchantDetails();
+        void loadMerchantDetails();
     }, [loadMerchantDetails]);
+
+    useEffect(() => {
+        let isCancelled = false;
+        let latestVerificationList: Verification[] = [];
+        let investigationPollingStarted = false;
+        let investigationInterval: ReturnType<typeof setInterval> | null = null;
+
+        const pollInvestigations = async () => {
+            if (latestVerificationList.length === 0) {
+                return;
+            }
+
+            try {
+                await loadInvestigationStatuses(latestVerificationList);
+            } catch (err) {
+                if (!isCancelled) {
+                    console.warn('Investigation polling failed:', err);
+                }
+            }
+        };
+
+        const startInvestigationPolling = () => {
+            if (investigationPollingStarted) {
+                return;
+            }
+
+            investigationPollingStarted = true;
+
+            // First investigation check happens immediately when a
+            // verification appears, then every 5 seconds afterwards.
+            void pollInvestigations();
+            investigationInterval = setInterval(() => {
+                void pollInvestigations();
+            }, 5000);
+        };
+
+        const pollVerifications = async () => {
+            try {
+                const verificationData =
+                    await getVerificationHistory(merchantId);
+
+                if (isCancelled) {
+                    return;
+                }
+
+                latestVerificationList = verificationData;
+                setVerifications(verificationData);
+                setIsLoadingVerifications(false);
+
+                if (verificationData.length > 0) {
+                    startInvestigationPolling();
+                }
+            } catch (err) {
+                if (!isCancelled) {
+                    console.warn('Verification polling failed:', err);
+                    setIsLoadingVerifications(false);
+                }
+            }
+        };
+
+        // Check verification immediately, then every 5 seconds.
+        void pollVerifications();
+        const verificationInterval = setInterval(() => {
+            void pollVerifications();
+        }, 5000);
+
+        return () => {
+            isCancelled = true;
+            clearInterval(verificationInterval);
+
+            if (investigationInterval) {
+                clearInterval(investigationInterval);
+            }
+        };
+    }, [merchantId, loadInvestigationStatuses]);
 
     // ============================================================
     // Handle Investigate
@@ -654,14 +661,6 @@ export function MerchantDetailsPage({
                         />
                     </div>
                 </div>
-            </div>
-
-            {/* ================================================== */}
-            {/* Documents */}
-            {/* ================================================== */}
-
-            <div className="pt-2">
-                <DocumentSection merchantId={merchantId} />
             </div>
 
             {/* ================================================== */}
