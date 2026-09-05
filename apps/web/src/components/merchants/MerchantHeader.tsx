@@ -152,7 +152,7 @@ export function MerchantHeader({
 
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-[#18181B]">
-                            Merchant Risk Analyzer
+                            MerchantIQ - Merchant Risk Analyzer
                         </h1>
 
                         <p className="text-xs text-[#71717A] font-medium">
