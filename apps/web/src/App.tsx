@@ -142,12 +142,20 @@ export default function App() {
     // MERCHANT CREATED
     // =========================================================
 
-    const handleMerchantCreated = (newMerchantId: string) => {
-        setIsCreateModalOpen(false);
-
+    const handleMerchantCreated = (_newMerchantId: string) => {
+        /*
+         * The merchant has been successfully created.
+         *
+         * Do NOT close the modal here.
+         * Do NOT navigate to the merchant details page here.
+         *
+         * The CreateMerchantModal will remain open so the user
+         * can watch the remaining setup pipeline if they want to.
+         *
+         * The modal can be closed manually by clicking the X,
+         * Cancel, or outside the modal.
+         */
         fetchMerchants();
-
-        navigateToMerchant(newMerchantId);
     };
 
     // =========================================================
@@ -192,7 +200,6 @@ export default function App() {
     const handleGovernmentDocumentUpload = async () => {
         if (!adminPassword.trim()) {
             setGovernmentUploadError('Please enter the admin password.');
-
             return;
         }
 
@@ -218,7 +225,6 @@ export default function App() {
 
             if (response.status === 401 || response.status === 403) {
                 setGovernmentUploadError('Invalid admin password.');
-
                 return;
             }
 

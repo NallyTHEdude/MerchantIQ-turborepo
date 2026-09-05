@@ -93,6 +93,12 @@ export function CreateMerchantModal({
     // Sequence execution state
     const [isRunningSequence, setIsRunningSequence] = useState(false);
 
+    const [merchantCreated, setMerchantCreated] = useState(false);
+
+    const [createdMerchantId, setCreatedMerchantId] = useState<string | null>(
+        null,
+    );
+
     const [generalError, setGeneralError] = useState<string | null>(null);
 
     const [steps, setSteps] = useState<SequenceStep[]>([
@@ -257,13 +263,15 @@ export function CreateMerchantModal({
     };
 
     // ============================================================
-    // Sequential Execution
+    // Execution
     // ============================================================
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         setGeneralError(null);
+        setMerchantCreated(false);
+        setCreatedMerchantId(null);
 
         // Initial validations
         if (!businessName.trim()) {
@@ -342,7 +350,7 @@ export function CreateMerchantModal({
             },
         ]);
 
-        let createdMerchantId = '';
+        const startedAt = Date.now();
 
         try {
             // ====================================================
@@ -359,9 +367,9 @@ export function CreateMerchantModal({
                 phoneNumber: phoneNumber.trim(),
             });
 
-            createdMerchantId = merchantRes.merchantId;
+            const newMerchantId = merchantRes.merchantId;
 
-            if (!createdMerchantId) {
+            if (!newMerchantId) {
                 throw new Error(
                     'Merchant was created but backend returned no merchant ID.',
                 );
@@ -369,13 +377,52 @@ export function CreateMerchantModal({
 
             updateStep('merchant', 'success');
 
+            /*
+             * We want the user to spend at most around 2 seconds
+             * waiting before receiving the "Merchant created"
+             * confirmation.
+             *
+             * If creating the merchant itself took less than 2
+             * seconds, wait for the remainder.
+             *
+             * If it already took 2+ seconds, continue immediately.
+             */
+            const elapsed = Date.now() - startedAt;
+            const remainingDelay = Math.max(0, 2000 - elapsed);
+
+            if (remainingDelay > 0) {
+                await new Promise<void>((resolve) => {
+                    setTimeout(resolve, remainingDelay);
+                });
+            }
+
+            // ====================================================
+            // Merchant Created — notify UI
+            // ====================================================
+
+            setCreatedMerchantId(newMerchantId);
+            setMerchantCreated(true);
+
+            /*
+             * Notify App that the merchant exists.
+             *
+             * App intentionally does NOT close the modal or navigate.
+             */
+            onSuccess(newMerchantId);
+
+            /*
+             * From this point onward, the remaining setup continues
+             * asynchronously. The user can close the modal whenever
+             * they want.
+             */
+
             // ====================================================
             // Step 2: POST /api/payment/:merchantId
             // ====================================================
 
             updateStep('payments', 'active');
 
-            await createPayments(createdMerchantId, paymentData);
+            await createPayments(newMerchantId, paymentData);
 
             updateStep('payments', 'success');
 
@@ -385,7 +432,7 @@ export function CreateMerchantModal({
 
             updateStep('merchantDoc', 'active');
 
-            await uploadMerchantDocument(createdMerchantId, merchantDocFile);
+            await uploadMerchantDocument(newMerchantId, merchantDocFile);
 
             updateStep('merchantDoc', 'success');
 
@@ -395,21 +442,14 @@ export function CreateMerchantModal({
 
             updateStep('finishing', 'active');
 
-            await new Promise((resolve) => setTimeout(resolve, 600));
-
             updateStep('finishing', 'success');
-
-            // Done!
-            setTimeout(() => {
-                onSuccess(createdMerchantId);
-            }, 500);
         } catch (err: unknown) {
             const errMsg =
                 err instanceof Error ? err.message : 'Operation failed';
 
             setGeneralError(`Unable to complete merchant setup: ${errMsg}`);
 
-            // Mark whichever active step as failed
+            // Mark whichever active step failed
             setSteps((prev) =>
                 prev.map((step) =>
                     step.status === 'active'
@@ -430,12 +470,21 @@ export function CreateMerchantModal({
         <div
             className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
             onClick={(e) => {
-                if (e.target === e.currentTarget && !isRunningSequence) {
+                /*
+                 * The modal can ALWAYS be closed by clicking outside.
+                 *
+                 * Closing the modal does not cancel the async pipeline.
+                 * The promises started by handleSubmit continue running.
+                 */
+                if (e.target === e.currentTarget) {
                     onClose();
                 }
             }}
         >
-            <div className="bg-white rounded-xl border border-[#E4E4E7] shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            <div
+                className="bg-white rounded-xl border border-[#E4E4E7] shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E7] bg-white">
                     <div>
@@ -449,17 +498,48 @@ export function CreateMerchantModal({
                         </p>
                     </div>
 
-                    {!isRunningSequence && (
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="p-1.5 text-[#71717A] hover:text-[#18181B] rounded-md hover:bg-[#F4F4F5] transition-colors"
-                            aria-label="Close"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-1.5 text-[#71717A] hover:text-[#18181B] rounded-md hover:bg-[#F4F4F5] transition-colors"
+                        aria-label="Close"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
+
+                {/* Merchant Created Confirmation */}
+                {merchantCreated && (
+                    <div className="px-6 py-5 bg-emerald-50 border-b border-emerald-200">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                                <Check className="w-4 h-4 text-emerald-600" />
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-semibold text-emerald-900">
+                                    Merchant created successfully
+                                </h4>
+
+                                <p className="text-xs text-emerald-700 mt-1">
+                                    Please wait until verification and
+                                    investigation completes.
+                                </p>
+
+                                <p className="text-[11px] text-emerald-600 mt-2">
+                                    You can close this window. The remaining
+                                    setup will continue in the background.
+                                </p>
+
+                                {createdMerchantId && (
+                                    <p className="text-[10px] text-emerald-600/80 font-mono mt-2">
+                                        Merchant ID: {createdMerchantId}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Progress Display */}
                 {steps.some((s) => s.status !== 'pending') && (
@@ -801,7 +881,6 @@ export function CreateMerchantModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            disabled={isRunningSequence}
                             className="px-3.5 py-2 text-xs font-medium text-[#71717A] hover:text-[#18181B] rounded-md transition-colors"
                         >
                             Cancel
