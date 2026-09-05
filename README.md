@@ -2,13 +2,11 @@
 
 MerchantIQ helps a platform figure out whether a merchant signing up is trustworthy or risky.
 
-You give it a merchant's basic details (business name, GST number, website, phone number) and a document (like a business registration PDF). It then automatically:
+You give it a merchant's basic details (business name, GST number, website, phone number) and a document (like a business registration PDF). It then runs a fan-out/fan-in pipeline that:
 
-- Checks whether the GST number, phone number, and website look valid and real
-- Looks at the merchant's website itself to see if it's a genuine, operating business
-- Scores the merchant's payment history for fraud risk using an ensemble ML model (XGBoost + SVM + Random Forest, combined via soft voting)
-- Reads the uploaded document and compares it against government compliance rules
-- Combines all of this into a final decision — **Approve** or **Reject** — along with a simple explanation of why
+- Checks whether the GST number, phone number, and website look valid and real, and scores the merchant's payment history for fraud risk using an ensemble ML model (XGBoost + SVM + Random Forest, combined via soft voting) — all running concurrently
+- In parallel, reads the uploaded document and embeds it for retrieval
+- Once both branches finish, compares everything against government compliance rules and combines it into a final decision — **Approve** or **Reject** — along with a simple explanation of why
 
 ## Quick start
 
