@@ -1,9 +1,9 @@
 import asyncHandler from 'express-async-handler';
 import StatusCodes from 'http-status-codes';
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 import { getInvestigationByVerificationIdService } from '@/app/services/investigation.service';
 import { ApiResponse } from '@/utils/response/ApiResponse';
-import { InvestigationParams } from '@/data/types/Investigation';
+import { type InvestigationParams } from '@/data/types/Investigation';
 
 export const getInvestigationByVerificationIdController = asyncHandler(
     async (req: Request<InvestigationParams>, res: Response): Promise<void> => {

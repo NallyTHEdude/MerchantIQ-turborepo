@@ -369,7 +369,7 @@ export const merchantAnalysisPipeline = inngestClient.createFunction(
                     verificationResult,
                     documentResult,
                 },
-            })) as RagProcessingResult;
+            }));
         } catch (error) {
             console.error(
                 `RAG pipeline failed for merchant ${merchant.id}`,
@@ -390,7 +390,7 @@ export const merchantAnalysisPipeline = inngestClient.createFunction(
         await step.run('create-investigation', async () => {
             return createInvestigation({
                 verificationId,
-                action: ragPipelineResult!.ragResult.decision,
+                action: ragPipelineResult.ragResult.decision,
                 reasoning: JSON.stringify(ragPipelineResult, null, 2),
             });
         });

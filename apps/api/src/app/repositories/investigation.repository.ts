@@ -1,4 +1,4 @@
-import { Investigation } from '@/data/types/Investigation';
+import { type Investigation } from '@/data/types/Investigation';
 import { db } from '@/db';
 import { investigations as investigationTable } from '@/db/schemas/investigations.schema';
 import { eq } from 'drizzle-orm';
