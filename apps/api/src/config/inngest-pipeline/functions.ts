@@ -35,7 +35,7 @@ import {
     merchantRagSchema,
     verificationRequested,
 } from './eventSchemas';
-import {RagDecision} from "@/data/enums/rag.enums";
+import { RagDecision } from '@/data/enums/rag.enums';
 
 type RagProcessingResult = {
     merchantId: string;

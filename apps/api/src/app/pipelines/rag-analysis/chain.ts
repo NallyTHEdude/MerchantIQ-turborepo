@@ -5,7 +5,6 @@
 import { ragDecisionSchema, type RagDecisionResult } from './schema';
 import { ChatGroq } from '@langchain/groq';
 
-
 // const ragModel = new ChatMistralAI({
 //     model: 'mistral-small-latest',
 //     temperature: 0,

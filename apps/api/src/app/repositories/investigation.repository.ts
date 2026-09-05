@@ -25,7 +25,9 @@ export const createInvestigation = async ({
     return investigation;
 };
 
-export const getInvestigationByVerificationIdRepository = async (verificationId: string): Promise<Investigation | undefined> => {
+export const getInvestigationByVerificationIdRepository = async (
+    verificationId: string,
+): Promise<Investigation | undefined> => {
     const investigation = await db
         .select()
         .from(investigationTable)

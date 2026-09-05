@@ -1,6 +1,4 @@
 {
-  "name": "Merchant Risk Analyzer",
-  "description": "Merchant verification & risk monitoring dashboard with real-time risk scores, verification checks, and payment history.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+    "name": "Merchant Risk Analyzer",
+    "description": "Merchant verification & risk monitoring dashboard with real-time risk scores, verification checks, and payment history."
 }

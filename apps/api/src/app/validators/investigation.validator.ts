@@ -1,4 +1,4 @@
-import {param} from 'express-validator';
+import { param } from 'express-validator';
 
 export const getInvestigationByVerificationIdValidator = [
     param('verificationId')

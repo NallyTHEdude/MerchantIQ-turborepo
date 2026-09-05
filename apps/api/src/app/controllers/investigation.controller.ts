@@ -8,9 +8,8 @@ import { InvestigationParams } from '@/data/types/Investigation';
 export const getInvestigationByVerificationIdController = asyncHandler(
     async (req: Request<InvestigationParams>, res: Response): Promise<void> => {
         const { verificationId } = req.params;
-        const investigation = await getInvestigationByVerificationIdService(
-            verificationId,
-        );
+        const investigation =
+            await getInvestigationByVerificationIdService(verificationId);
         new ApiResponse(
             StatusCodes.OK,
             'Investigation retrieved successfully',

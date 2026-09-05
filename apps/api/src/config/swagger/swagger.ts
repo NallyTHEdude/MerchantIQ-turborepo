@@ -40,7 +40,8 @@ const options: swaggerJsdoc.Options = {
             },
             {
                 name: 'Investigation Endpoints',
-                description: 'Endpoints related to verification investigations.',
+                description:
+                    'Endpoints related to verification investigations.',
             },
         ],
         servers: [

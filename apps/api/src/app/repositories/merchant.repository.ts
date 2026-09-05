@@ -69,7 +69,9 @@ export const deleteMerchantById = async (
     return deletedMerchant ?? null;
 };
 
-export const getLatestVerificationOfAllMerchants = async (): Promise<MerchantWithLatestVerification[]> => {
+export const getLatestVerificationOfAllMerchants = async (): Promise<
+    MerchantWithLatestVerification[]
+> => {
     return db
         .selectDistinctOn([merchantTable.id], {
             merchant: {

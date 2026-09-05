@@ -19,10 +19,7 @@ export const uploadMerchant = async (data: UploadMerchantDto) => {
     const { fileStream, merchantId, originalFilename } = data;
 
     if (!merchantId) {
-        throw new ApiError(
-            StatusCodes.BAD_REQUEST, 
-            'Merchant ID is required'
-        );
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Merchant ID is required');
     }
 
     const merchant = await getMerchantById(merchantId);

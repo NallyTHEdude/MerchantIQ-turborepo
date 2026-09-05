@@ -6,17 +6,17 @@ import { Verification } from '@/types';
  * GET /api/verification/:merchantId
  */
 export async function getVerificationHistory(
-  merchantId: string
+    merchantId: string,
 ): Promise<Verification[]> {
-  const response = await request<Verification[]>(
-    `/api/verification/${encodeURIComponent(merchantId)}`,
-    {
-      method: 'GET',
-    }
-  );
+    const response = await request<Verification[]>(
+        `/api/verification/${encodeURIComponent(merchantId)}`,
+        {
+            method: 'GET',
+        },
+    );
 
-  if (Array.isArray(response.data)) {
-    return response.data;
-  }
-  return [];
+    if (Array.isArray(response.data)) {
+        return response.data;
+    }
+    return [];
 }

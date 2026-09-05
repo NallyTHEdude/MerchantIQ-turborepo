@@ -7,13 +7,13 @@ import { CreatePaymentDto, PaymentItem, ApiResponse } from '@/types';
  * Expects array of payments in request body
  */
 export async function createPayments(
-  merchantId: string,
-  payments: CreatePaymentDto[]
+    merchantId: string,
+    payments: CreatePaymentDto[],
 ): Promise<ApiResponse<unknown>> {
-  return request(`/api/payment/${encodeURIComponent(merchantId)}`, {
-    method: 'POST',
-    body: JSON.stringify(payments),
-  });
+    return request(`/api/payment/${encodeURIComponent(merchantId)}`, {
+        method: 'POST',
+        body: JSON.stringify(payments),
+    });
 }
 
 /**
@@ -21,17 +21,17 @@ export async function createPayments(
  * GET /api/payment/:merchantId
  */
 export async function getPaymentHistory(
-  merchantId: string
+    merchantId: string,
 ): Promise<PaymentItem[]> {
-  const response = await request<PaymentItem[]>(
-    `/api/payment/${encodeURIComponent(merchantId)}`,
-    {
-      method: 'GET',
-    }
-  );
+    const response = await request<PaymentItem[]>(
+        `/api/payment/${encodeURIComponent(merchantId)}`,
+        {
+            method: 'GET',
+        },
+    );
 
-  if (Array.isArray(response.data)) {
-    return response.data;
-  }
-  return [];
+    if (Array.isArray(response.data)) {
+        return response.data;
+    }
+    return [];
 }
